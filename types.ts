@@ -5,8 +5,8 @@ import nodeDataChannel, {
 } from "node-datachannel";
 
 export type Connection = {
-  remoteId: string;
+  clientId: string;
   peerConnection: PeerConnection;
-  orderedChannel: DataChannel;
-  unorderedChannel: DataChannel;
+  orderedChannel: DataChannel | null;
+  unorderedChannel: DataChannel | null;
 };
