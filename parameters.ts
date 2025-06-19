@@ -1,0 +1,12 @@
+export const acceleration = 0.0007;
+export const rotationAcceleration = 0.000001;
+export const speed = 0;
+export const maxSpeed = 1.5;
+export const minSpeed = 0;
+export const maxRotationSpeed = 0.001;
+export const savePlayerDataInterval = 100000;
+export const sendIntervalMain = 51;
+export const sendIntervalMainState = 10000;
+export const interpolationAlpha = 0.025;
+export const chatMessageTimeToLive = 60000;
+export const shotDelay = 50;
