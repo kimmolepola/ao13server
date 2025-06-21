@@ -1,15 +1,22 @@
 import { PeerConnection, DataChannel } from "node-datachannel";
 import * as THREE from "three";
 
-export type GameObject = {
+export interface GameObject {
   id: string;
   type: GameObjectType;
   speed: number;
-  object3d: THREE.Object3D | undefined;
-  dimensions?: THREE.Vector3 | undefined;
+  mesh: THREE.Mesh<THREE.BoxGeometry>;
   collisions: { [gameObjectId: string]: { time: number; collision: boolean } };
+}
+
+export interface LocalGameObject extends GameObject {
+  type: GameObjectType.Bullet;
+  timeToLive: number;
+}
+
+export interface SharedGameObject extends GameObject {
   health: number;
-  isMe: boolean;
+  type: GameObjectType.Fighter;
   isPlayer: boolean;
   username: string;
   score: number;
@@ -18,11 +25,41 @@ export type GameObject = {
   controlsLeft: number;
   controlsRight: number;
   controlsSpace: number;
+  controlsOverChannelsUp: number;
+  controlsOverChannelsDown: number;
+  controlsOverChannelsLeft: number;
+  controlsOverChannelsRight: number;
+  controlsOverChannelsSpace: number;
   rotationSpeed: number;
-  position: THREE.Vector3;
-  quaternion: THREE.Quaternion;
   shotDelay: number;
-};
+}
+
+export enum EventType {
+  HealthZero,
+  Collision,
+  Shot,
+  RemoveLocalObjectIndexes,
+}
+
+export type GameEvent =
+  | {
+      type: EventType.HealthZero;
+      data: SharedGameObject;
+    }
+  | {
+      type: EventType.Collision;
+      data: {
+        object: SharedGameObject;
+        otherObjects: GameObject[];
+      };
+    }
+  | {
+      type: EventType.Shot;
+      data: { mesh: THREE.Mesh<THREE.BoxGeometry>; speed: number };
+    }
+  | { type: EventType.RemoveLocalObjectIndexes; data: number[] };
+
+export type GameEventHandler = (e: GameEvent) => void;
 
 export type PlayerState = {
   clientId: string;

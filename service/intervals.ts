@@ -5,7 +5,7 @@ import * as parameters from "../parameters";
 export const startIntervals = () => {
   setInterval(() => {
     handleSendState(sendOrdered);
-  }, parameters.sendIntervalMainState);
+  }, parameters.sendIntervalState);
   setInterval(() => {
     savePlayerData();
   }, parameters.savePlayerDataInterval);

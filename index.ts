@@ -22,3 +22,12 @@ const onChannelsChanged = (peerId: string) => {
 startConnection(onChannelsChanged);
 startIntervals();
 run();
+
+setInterval(() => {
+  console.log(
+    "--o:",
+    globals.sharedGameObjects
+      .map((x) => x.id + ":" + x.mesh.position.toArray())
+      .join(", ")
+  );
+}, 3000);

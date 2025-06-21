@@ -1,25 +1,24 @@
 import { DataChannel, PeerConnection } from "node-datachannel";
 import * as types from "../types";
 import * as globals from "../globals";
-
-const sendOrdered = (data: types.State | types.ChatMessageFromServer) => {};
-
-const handleReceiveControlsData = (
-  clientId: string,
-  data: types.ClientData
-) => {};
+import { startLoop } from "../loop/loop";
+import { sendOrdered } from "./channels";
+import { handleReceiveControlsData } from "./objects";
+import { gameEventHandler } from "./events";
 
 export const onMessage = (
   msg: string | ArrayBuffer | Buffer<ArrayBufferLike>,
   clientId: string,
   dc: DataChannel
 ) => {
+  console.log("--msg--", clientId, msg);
+
   if (msg === "ping") {
-    console.log("--msg--", clientId, msg);
     dc.sendMessage("pong");
     return;
   }
   const data: types.ClientData = JSON.parse(msg as string);
+
   switch (data.type) {
     case types.ClientDataType.Controls: {
       handleReceiveControlsData(clientId, data);
@@ -31,7 +30,8 @@ export const onMessage = (
         text: data.text,
         userId: clientId,
         username:
-          globals.gameObjects.find((x) => x.id === clientId)?.username || "",
+          globals.sharedGameObjects.find((x) => x.id === clientId)?.username ||
+          "",
       };
       sendOrdered({
         ...message,
@@ -44,4 +44,6 @@ export const onMessage = (
   }
 };
 
-export const run = () => {};
+export const run = () => {
+  startLoop(gameEventHandler);
+};
