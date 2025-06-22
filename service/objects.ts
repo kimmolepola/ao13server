@@ -7,7 +7,7 @@ import { sendOrdered } from "./channels";
 
 const addObject = async (id: string) => {
   const { data } = await api.getGameObject(id);
-  const geometry = new THREE.BoxGeometry(0.01, 0.01, 0.01);
+  const geometry = new THREE.BoxGeometry(1, 1, 1);
   const mesh = new THREE.Mesh(geometry);
   mesh.geometry.computeBoundingBox();
   if (data) {

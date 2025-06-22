@@ -90,11 +90,11 @@ const createPeerConnection = (
     }
     dc.onOpen(() => {
       console.log("Peer", peerId, "Data channel opened", label);
-      onChannelsChanged(peerId);
+      label === "ordered" && onChannelsChanged(peerId);
     });
     dc.onClosed(() => {
       console.log("Peer", peerId, "Data channel closed", label);
-      onChannelsChanged(peerId);
+      label === "ordered" && onChannelsChanged(peerId);
     });
     dc.onMessage((msg) => {
       onMessage(msg, peerId, dc);
