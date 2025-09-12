@@ -11,8 +11,6 @@ export const onMessage = (
   clientId: string,
   dc: DataChannel
 ) => {
-  console.log("--msg--", clientId, msg);
-
   if (msg === "ping") {
     dc.sendMessage("pong");
     return;

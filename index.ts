@@ -6,15 +6,11 @@ import { startIntervals } from "./service/intervals";
 
 const onChannelsChanged = (peerId: string) => {
   const client = globals.clients.map[peerId];
-  if (
-    client &&
-    client.orderedChannel?.isOpen() &&
-    client.unorderedChannel?.isOpen()
-  ) {
-    console.log(`Both channels are open for peer ${peerId}`);
+  if (client && client.orderedChannel?.isOpen()) {
+    console.log(`Connection open for peer ${peerId}`);
     handleNewId(peerId);
   } else {
-    console.log(`One or both channels are closed for peer ${peerId}`);
+    console.log(`Connection closed for peer ${peerId}`);
     handleRemoveId(peerId);
   }
 };
@@ -22,12 +18,3 @@ const onChannelsChanged = (peerId: string) => {
 startConnection(onChannelsChanged);
 startIntervals();
 run();
-
-setInterval(() => {
-  console.log(
-    "--o:",
-    globals.sharedGameObjects
-      .map((x) => x.id + ":" + x.mesh.position.toArray())
-      .join(", ")
-  );
-}, 3000);

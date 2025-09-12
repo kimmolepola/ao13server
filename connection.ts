@@ -80,8 +80,8 @@ const createPeerConnection = (
 
   peerConnection.onDataChannel((dc) => {
     const label = dc.getLabel();
-    console.log("--label:", label);
     const client = globals.clients.map[peerId];
+    console.log("--label:", label, client.id);
     if (client && label === "ordered") {
       client.orderedChannel = dc;
     }
@@ -119,9 +119,9 @@ const registerHubConnectionListeners = (
       switch (msg.type) {
         case "offer":
           globals.clients.map[msg.id]?.peerConnection.close();
-          const index = globals.clients.array.findIndex((x) => x.id);
+          const index = globals.clients.array.findIndex((x) => x.id === msg.id);
           index !== -1 && globals.clients.array.splice(index, 1);
-          console.log("--offer", globals.clients.map[msg.id], index);
+          console.log("--offer", msg.id, globals.clients.map[msg.id], index);
 
           createPeerConnection(msg.id, hubConnection, onChannelsChanged);
           globals.clients.map[msg.id]?.peerConnection.setRemoteDescription(

@@ -8,7 +8,6 @@ export const sendOrdered = (
   try {
     globals.clients.array.forEach((x) => {
       if (x.orderedChannel?.isOpen()) {
-        console.log("--send:", data);
         x.orderedChannel.sendMessage(stringData);
       }
     });
