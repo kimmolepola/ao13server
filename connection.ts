@@ -177,7 +177,7 @@ const getIceServers = async () => {
   const turnInfo: IceServer = data;
   const port = Number(turnPort);
   const servers: IceServer[] = [{ ...turnInfo, port, relayType: "TurnUdp" }];
-  console.log("Turn server info", turnInfo);
+  // console.log("Turn server info", turnInfo);
   return servers;
 };
 
