@@ -5,8 +5,6 @@ import * as types from "./types";
 const backendUrl = process.env.ASPNETCORE_Ao13back__ServerOptions__BackendUrl;
 const pathPrefix = "/api/v1";
 
-console.log("--backendUrl:", backendUrl);
-
 export const saveGameState = (data: types.PlayerState[]) =>
   axios.post(backendUrl + pathPrefix + "/gameObject/saveGameState", data);
 

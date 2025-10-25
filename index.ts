@@ -6,7 +6,7 @@ import { startIntervals } from "./service/intervals";
 
 const onChannelsChanged = (peerId: string) => {
   const client = globals.clients.map[peerId];
-  if (client && client.orderedChannel?.isOpen()) {
+  if (client && client.reliableChannel?.isOpen()) {
     console.log(`Connection open for peer ${peerId}`);
     handleNewId(peerId);
   } else {

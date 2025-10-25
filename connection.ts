@@ -2,7 +2,7 @@ import nodeDataChannel, { IceServer, DescriptionType } from "node-datachannel";
 import { HubConnection } from "@microsoft/signalr";
 import * as types from "./types";
 import * as api from "./api";
-import { onMessage } from "./service/service";
+import { onMessage, onMessageBinary } from "./service/service";
 import * as globals from "./globals";
 
 // const backendUrl = "http://localhost:5095";
@@ -27,8 +27,9 @@ const createPeerConnection = (
   const client = {
     id: peerId,
     peerConnection,
-    orderedChannel: null,
-    unorderedChannel: null,
+    reliableChannel: null,
+    reliableChannelBinary: null,
+    unreliableChannelBinary: null,
   };
   globals.clients.array.push(client);
   globals.clients.map[peerId] = client;
@@ -55,12 +56,10 @@ const createPeerConnection = (
   });
 
   peerConnection.onLocalDescription((description, type) => {
-    console.log("--onLocalDesc");
     hubConnection.send("signaling", { id: peerId, type, description });
   });
 
   peerConnection.onLocalCandidate((candidate, mid) => {
-    console.log("--onLocalCandidate", candidate, mid);
     hubConnection.send("signaling", {
       id: peerId,
       type: "candidate",
@@ -81,23 +80,34 @@ const createPeerConnection = (
   peerConnection.onDataChannel((dc) => {
     const label = dc.getLabel();
     const client = globals.clients.map[peerId];
-    console.log("--label:", label, client.id);
-    if (client && label === "ordered") {
-      client.orderedChannel = dc;
+    if (client && label === "reliable") {
+      client.reliableChannel = dc;
     }
-    if (client && label === "unordered") {
-      client.unorderedChannel = dc;
+    if (client && label === "reliable-binary") {
+      client.reliableChannelBinary = dc;
+    }
+    if (client && label === "unreliable-binary") {
+      client.unreliableChannelBinary = dc;
     }
     dc.onOpen(() => {
       console.log("Peer", peerId, "Data channel opened", label);
-      label === "ordered" && onChannelsChanged(peerId);
+      label === "reliable" && onChannelsChanged(peerId);
     });
     dc.onClosed(() => {
       console.log("Peer", peerId, "Data channel closed", label);
-      label === "ordered" && onChannelsChanged(peerId);
+      label === "reliable" && onChannelsChanged(peerId);
     });
     dc.onMessage((msg) => {
-      onMessage(msg, peerId, dc);
+      switch (label) {
+        case "reliable":
+          onMessage(msg, peerId, dc);
+          break;
+        case "unreliable-binary":
+          onMessageBinary(msg, peerId);
+          break;
+        default:
+          break;
+      }
     });
   });
 };
@@ -121,7 +131,6 @@ const registerHubConnectionListeners = (
           globals.clients.map[msg.id]?.peerConnection.close();
           const index = globals.clients.array.findIndex((x) => x.id === msg.id);
           index !== -1 && globals.clients.array.splice(index, 1);
-          console.log("--offer", msg.id, globals.clients.map[msg.id], index);
 
           createPeerConnection(msg.id, hubConnection, onChannelsChanged);
           globals.clients.map[msg.id]?.peerConnection.setRemoteDescription(
@@ -130,14 +139,12 @@ const registerHubConnectionListeners = (
           );
           break;
         case "answer":
-          console.log("--answer", globals.clients.map[msg.id]);
           globals.clients.map[msg.id]?.peerConnection.setRemoteDescription(
             msg.description,
             msg.type
           );
           break;
         case "candidate":
-          console.log("--candidate", globals.clients.map[msg.id]);
           globals.clients.map[msg.id]?.peerConnection.addRemoteCandidate(
             msg.candidate,
             msg.mid

@@ -2,16 +2,13 @@ import * as crypto from "crypto";
 import * as THREE from "three";
 import * as types from "../types";
 import * as globals from "../globals";
-import { handleSendState, savePlayerData } from "./objects";
-import { sendOrdered } from "./channels";
+import { handleRemoveId } from "./objects";
 
 export const gameEventHandler = (gameEvent: types.GameEvent) => {
   switch (gameEvent.type) {
     case types.EventType.HealthZero: {
-      savePlayerData();
       const obj = gameEvent.data;
-      globals.sharedGameObjects.splice(globals.sharedGameObjects.indexOf(obj));
-      handleSendState(sendOrdered);
+      handleRemoveId(obj.id);
       break;
     }
     case types.EventType.RemoveLocalObjectIndexes: {

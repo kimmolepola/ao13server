@@ -2,32 +2,46 @@ import * as types from "../types";
 import * as parameters from "../parameters";
 import * as globals from "../globals";
 import {
-  gatherUpdateData,
   resetControlValues,
   handleMovement,
   handleShot,
   checkHealth,
   detectCollision,
+  gatherUnreliableStateDataBinary,
 } from "./logic";
-import { sendUnordered } from "../service/channels";
+import { sendUnreliableBinary } from "../service/channels";
+
+const scoreTimeInteval = 9875;
 
 let nextSendTime = Date.now();
 let nextScoreTime = Date.now();
-const scoreTimeInteval = 9875;
+let buffer = new ArrayBuffer(types.unreliableStateInfoBytes);
+let view = new DataView(buffer);
+let previousObjectCount = 0;
+let offset = 0;
 
 const handleObjects = (
   delta: number,
-  updateData: { [id: string]: types.UpdateObject },
   time: number,
-  gatherUpdate: boolean,
+  gatherUnreliableState: boolean,
   gameEventHandler: types.GameEventHandler
 ) => {
-  for (let i = globals.sharedGameObjects.length - 1; i > -1; i--) {
+  const objectCount = globals.sharedGameObjects.length;
+  if (objectCount !== previousObjectCount) {
+    previousObjectCount = objectCount;
+    buffer = new ArrayBuffer(
+      types.unreliableStateInfoBytes +
+        objectCount * types.unreliableStateSingleObjectMaxBytes
+    );
+    view = new DataView(buffer);
+  }
+  offset = types.unreliableStateInfoBytes;
+  for (let i = 0; i < objectCount; i++) {
     const o = globals.sharedGameObjects[i];
     if (o) {
       checkHealth(o, gameEventHandler);
       detectCollision(o, time, gameEventHandler);
-      handleMovement(delta, o, o.mesh);
+      handleMovement(delta, o);
       handleShot(delta, o, gameEventHandler);
       // mock ->
       if (Date.now() > nextScoreTime) {
@@ -35,12 +49,23 @@ const handleObjects = (
         o.score += 1;
       }
       // <-
-      if (gatherUpdate) {
-        gatherUpdateData(updateData, o);
+      if (gatherUnreliableState) {
+        offset = gatherUnreliableStateDataBinary(view, offset, o);
         resetControlValues(o);
       }
     }
   }
+};
+
+const incrementAndLoop16BitSequence = () => {
+  let seq = view.getUint16(0);
+  seq = (seq + 1) % 65536;
+  view.setUint16(0, seq);
+};
+
+const insertStateSequenceNumber = () => {
+  const sequenceNumber = globals.recentlySentState.value?.sequenceNumberMax255;
+  sequenceNumber !== undefined && view.setUint8(2, sequenceNumber);
 };
 
 export const runFrame = (
@@ -48,17 +73,17 @@ export const runFrame = (
   gameEventHandler: types.GameEventHandler
 ) => {
   const time = Date.now();
-  const updateData: { [id: string]: types.UpdateObject } = {};
-  const send = time > nextSendTime;
+  const sendUnreliableState =
+    time > nextSendTime &&
+    globals.idsVersionMax255.value ===
+      globals.recentlySentState.value?.idsVersionMax255;
 
-  handleObjects(delta, updateData, time, send, gameEventHandler);
+  handleObjects(delta, time, sendUnreliableState, gameEventHandler);
 
-  if (send) {
-    nextSendTime = time + parameters.sendInterval;
-    sendUnordered({
-      timestamp: time,
-      type: types.ServerDataType.Update,
-      data: updateData,
-    });
+  if (sendUnreliableState) {
+    nextSendTime = time + parameters.unreliableStateInterval;
+    insertStateSequenceNumber();
+    sendUnreliableBinary(Buffer.from(buffer, 0, offset));
+    incrementAndLoop16BitSequence();
   }
 };

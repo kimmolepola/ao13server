@@ -1,6 +1,29 @@
 import { PeerConnection, DataChannel } from "node-datachannel";
 import * as THREE from "three";
 
+// 2 bytes for sequence number, 1 byte for associated reliable-state sequence number
+export const unreliableStateInfoBytes = 3;
+
+export const reliableStateSingleObjectBytes = 41;
+export const unreliableStateSingleObjectMaxBytes = 32;
+
+export type RecentlySentStateObjectData = {
+  [id: string]: Omit<SharedGameObject, "mesh"> & {
+    mesh: undefined;
+    position: { x: number; y: number; z: number };
+    // quaternion: { x: number; y: number; z: number; w: number };
+    angleZ: number;
+  };
+};
+
+export type RecentlySentState = {
+  value?: {
+    idsVersionMax255: number;
+    sequenceNumberMax255: number;
+    data: RecentlySentStateObjectData;
+  };
+};
+
 export interface GameObject {
   id: string;
   type: GameObjectType;
@@ -25,13 +48,23 @@ export interface SharedGameObject extends GameObject {
   controlsLeft: number;
   controlsRight: number;
   controlsSpace: number;
+  controlsD: number;
+  controlsF: number;
   controlsOverChannelsUp: number;
   controlsOverChannelsDown: number;
   controlsOverChannelsLeft: number;
   controlsOverChannelsRight: number;
   controlsOverChannelsSpace: number;
+  controlsOverChannelsD: number;
+  controlsOverChannelsF: number;
   rotationSpeed: number;
+  verticalSpeed: number;
   shotDelay: number;
+  previousSend: {
+    quaternionZ: number;
+    quaternionW: number;
+  };
+  positionZ: number;
 }
 
 export enum EventType {
@@ -71,97 +104,119 @@ export enum GameObjectType {
   Fighter,
 }
 
-export enum ClientDataType {
-  ChatMessage_Client,
-  Controls,
+export enum ClientStringDataType {
+  ChatMessage_Client = "ChatMessage_Client",
 }
 
-export enum ServerDataType {
-  ChatMessage_Server,
-  Update,
-  State,
+export enum ServerStringDataType {
+  ChatMessage_Server = "ChatMessage_Server",
+  BaseState = "BaseState",
 }
 
 export type ChatMessageFromClient = {
-  type: ClientDataType.ChatMessage_Client;
+  type: ClientStringDataType.ChatMessage_Client;
   text: string;
 };
 
 export type ChatMessageFromServer = {
-  type: ServerDataType.ChatMessage_Server;
+  type: ServerStringDataType.ChatMessage_Server;
   id: string;
   text: string;
   userId: string;
 };
 
 export type Controls = {
-  type: ClientDataType.Controls;
-  data: {
-    up: number;
-    down: number;
-    left: number;
-    right: number;
-    space: number;
-  };
+  up: number;
+  down: number;
+  left: number;
+  right: number;
+  space: number;
+  d: number;
+  f: number;
 };
 
-export type UpdateObject = {
-  uScore: number;
-  uHealth: number;
-  uControlsUp: number;
-  uControlsDown: number;
-  uControlsLeft: number;
-  uControlsRight: number;
-  uControlsSpace: number;
-  uRotationSpeed: number;
-  uSpeed: number;
-  uPositionX: number;
-  uPositionY: number;
-  uPositionZ: number;
-  uQuaternionX: number;
-  uQuaternionY: number;
-  uQuaternionZ: number;
-  uQuaternionW: number;
+export type BaseStateObject = {
+  id: string;
+  isPlayer: boolean;
+  username: string;
 };
 
-export type StateObject = {
-  sId: string;
-  sIsPlayer: boolean;
-  sUsername: string;
-  sScore: number;
-  sRotationSpeed: number;
-  sSpeed: number;
-  sPositionX: number;
-  sPositionY: number;
-  sPositionZ: number;
-  sQuaternionX: number;
-  sQuaternionY: number;
-  sQuaternionZ: number;
-  sQuaternionW: number;
+// Reliable-State shape (1 + n * 41 bytes)
+// [
+//   Uint8 sequence number (1 byte)
+//   ...stateDataInOrder (41 bytes each): [
+//     Uint32 guid part 1
+//     Uint32 guid part 2
+//     Uint32 guid part 3
+//     Uint32 guid part 4
+//     Uint32 score
+//     Uint8 health
+//     Int8 rotationSpeed
+//     Int8 verticalSpeed
+//     Uint16 speed
+//     Float32 positionX
+//     Float32 positionY
+//     Float32 positionZ
+//     Float32 angleZ
+//   ]
+// ]
+
+// Unreliable-State shape (3 + n * 2-32 bytes)
+// [
+//   Uint16 sequence number (2 bytes)
+//   Uint8 sequence number of associated reliable-state (1 byte)
+//   ...game object data (2-32 bytes each): [
+//     Uint8 providedValues1to8
+//     Uint8 providedValues9to16
+//     Uint32 score? #1
+//     Uint8 health? #2
+//     Uint8 controlsUp? #3
+//     Uint8 controlsDown? #4
+//     Uint8 controlsLeft? #5
+//     Uint8 controlsRight? #6
+//     Uint8 controlsSpace? #7
+//     Uint8 controlsD? #8
+//     Uint8 controlsF? #9
+//     Int8 rotationSpeed? #10
+//     int8 verticalSpeed? #11
+//     Uint16 speed? #12
+//     Float32 positionX? #13
+//     Float32 positionY? #14
+//     Float32 positionZ? #15
+//     Uint16 angleZ? #16
+//   ]
+// ]
+
+// ControlsBinary shape (1-8 bytes)
+// [
+//   Uint8 providedValues
+//   Uint8 up?
+//   Uint8 down?
+//   Uint8 left?
+//   Uint8 right?
+//   Uint8 space?
+//   Uint8 d?
+//   Uint8 f?
+// ]
+
+export type ReliableStateBinary = Uint8Array;
+export type UnreliableStateBinary = Uint8Array;
+
+export type BaseState = {
+  type: ServerStringDataType.BaseState;
+  data: BaseStateObject[];
 };
 
-export type Update = {
-  timestamp: number;
-  type: ServerDataType.Update;
-  data: {
-    [id: string]: UpdateObject;
-  };
-};
+export type ClientStringData = ChatMessageFromClient;
 
-export type State = {
-  type: ServerDataType.State;
-  data: { [id: string]: StateObject };
-};
-
-export type ClientData = ChatMessageFromClient | Controls;
-
-export type ServerData = ChatMessageFromServer | Update | State;
+export type ServerStringData = ChatMessageFromServer | BaseState;
 
 type Client = {
   id: string;
   peerConnection: PeerConnection;
-  orderedChannel: DataChannel | null;
-  unorderedChannel: DataChannel | null;
+  reliableChannel: DataChannel | null;
+  reliableChannelBinary: DataChannel | null;
+  unreliableChannelBinary: DataChannel | null;
 };
 
 export type Clients = {

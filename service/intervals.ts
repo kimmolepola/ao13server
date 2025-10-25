@@ -1,11 +1,10 @@
-import { handleSendState, savePlayerData } from "./objects";
-import { sendOrdered } from "./channels";
+import { handleSendReliableState, savePlayerData } from "./objects";
 import * as parameters from "../parameters";
 
 export const startIntervals = () => {
   setInterval(() => {
-    handleSendState(sendOrdered);
-  }, parameters.sendIntervalState);
+    handleSendReliableState();
+  }, parameters.reliableStateInterval);
   setInterval(() => {
     savePlayerData();
   }, parameters.savePlayerDataInterval);
