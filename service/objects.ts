@@ -11,6 +11,9 @@ import {
 
 const addObject = async (id: string) => {
   const { data } = await api.getGameObject(id);
+  if (id.length !== 32) {
+    console.error("Id length not 32:", id, "user:", data.username);
+  }
   const geometry = new THREE.BoxGeometry(1, 1, 1);
   const mesh = new THREE.Mesh(geometry);
   mesh.geometry.computeBoundingBox();
@@ -91,9 +94,6 @@ export const handleSendReliableState = () => {
   dataView.setUint8(0, sequenceNumberMax255);
   for (let i = 0; i < globals.sharedGameObjects.length; i++) {
     const o = globals.sharedGameObjects[i];
-    if (o.id.length !== 32) {
-      console.error("Id length not 32:", o.id, "user:", o.username);
-    }
     const idPart1 = parseInt(o.id.slice(0, 8), 16);
     const idPart2 = parseInt(o.id.slice(8, 16), 16);
     const idPart3 = parseInt(o.id.slice(16, 24), 16);
