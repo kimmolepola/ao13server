@@ -6,7 +6,7 @@ export const tickRate = 1000 / 60; // FPS
 // netcode
 export const unreliableStateInterval = 1000 / 20; // FPS
 // export const sendInterval = 2000;
-export const reliableStateInterval = 3000;
+export const reliableStateInterval = 5000;
 export const maxExpectedReliableTransmissionDelay = 500; // ms
 export const angleMaxValue = 65535;
 
