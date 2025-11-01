@@ -1,4 +1,5 @@
-import { handleSendReliableState, savePlayerData } from "./objects";
+import { savePlayerData } from "./objects";
+import { handleSendReliableState } from "../netcode/reliableState";
 import * as parameters from "../parameters";
 
 export const startIntervals = () => {

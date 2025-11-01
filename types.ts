@@ -154,10 +154,10 @@ export type BaseStateObject = {
 //     Int8 rotationSpeed
 //     Int8 verticalSpeed
 //     Uint16 speed
-//     Float32 positionX
-//     Float32 positionY
-//     Float32 positionZ
-//     Float32 angleZ
+//     Int32 positionX
+//     Int32 positionY
+//     Int32 positionZ
+//     Uint16 angleZ
 //   ]
 // ]
 
@@ -180,9 +180,9 @@ export type BaseStateObject = {
 //     Int8 rotationSpeed? #10
 //     int8 verticalSpeed? #11
 //     Uint16 speed? #12
-//     Float32 positionX? #13
-//     Float32 positionY? #14
-//     Float32 positionZ? #15
+//     Int32 positionX? #13
+//     Int32 positionY? #14
+//     Int32 positionZ? #15
 //     Uint16 angleZ? #16
 //   ]
 // ]
