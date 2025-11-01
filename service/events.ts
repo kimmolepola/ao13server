@@ -3,14 +3,15 @@ import * as THREE from "three";
 import * as types from "../types";
 import * as globals from "../globals";
 import * as parameters from "../parameters";
-import { handleSendReliableState, handleRemoveId } from "./objects";
+import { handleRemoveId } from "./objects";
 
 export const gameEventHandler = (gameEvent: types.GameEvent) => {
   switch (gameEvent.type) {
     case types.EventType.HealthZero: {
-      handleSendReliableState();
-      const obj = gameEvent.data;
-      handleRemoveId(obj.id);
+      setTimeout(() => {
+        const obj = gameEvent.data;
+        handleRemoveId(obj.id);
+      }, 1000);
       break;
     }
     case types.EventType.RemoveLocalObjectIndexes: {
