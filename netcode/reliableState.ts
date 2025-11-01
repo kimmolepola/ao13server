@@ -65,8 +65,12 @@ export const handleSendReliableState = () => {
           verticalSpeed: Math.round(cur.verticalSpeed),
           // speed: Math.round(cur.speed * parameters.speedToNetworkFactor),
           position: {
-            x: cur.mesh.position.x,
-            y: cur.mesh.position.y,
+            x: Math.round(
+              cur.mesh.position.x * parameters.positonToNetworkFactor
+            ),
+            y: Math.round(
+              cur.mesh.position.y * parameters.positonToNetworkFactor
+            ),
             z: cur.positionZ,
           },
           // quaternion: {

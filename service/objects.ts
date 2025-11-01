@@ -11,7 +11,7 @@ const addObject = async (id: string) => {
   if (id.length !== 32) {
     console.error("Id length not 32:", id, "user:", data.username);
   }
-  const geometry = new THREE.BoxGeometry(1, 1, 1);
+  const geometry = new THREE.BoxGeometry(5000, 5000, 1);
   const mesh = new THREE.Mesh(geometry);
   mesh.geometry.computeBoundingBox();
   if (data) {

@@ -25,14 +25,14 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
       const id = crypto.randomBytes(12).toString("hex");
       const speed = gameEvent.data.speed + parameters.bulletSpeed;
       const type = types.GameObjectType.Bullet as types.GameObjectType.Bullet;
-      const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+      const geometry = new THREE.BoxGeometry(600, 600, 1);
       const mesh = new THREE.Mesh(geometry);
       mesh?.geometry.computeBoundingBox();
       const timeToLive = 1500;
       const collisions = {};
       mesh?.position.copy(gameEvent.data.mesh.position);
       mesh?.quaternion.copy(gameEvent.data.mesh.quaternion);
-      mesh?.translateY(0.5);
+      mesh?.translateY(5000);
       globals.localGameObjects.push({
         id,
         type,

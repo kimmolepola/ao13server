@@ -137,15 +137,17 @@ export const gatherUnreliableStateDataBinary = (
     localOffset += 2; // 18 bytes #12
   }
 
-  if (o.mesh.position.x !== recentObjectState?.position.x) {
+  const x = Math.round(o.mesh.position.x * parameters.positonToNetworkFactor);
+  if (x !== recentObjectState?.position.x) {
     providedValues9to16 |= 0b00010000; // 5th bit of 2nd byte
-    view.setFloat32(offset + localOffset, o.mesh?.position.x || 0);
+    view.setInt32(offset + localOffset, x || 0);
     localOffset += 4; // 22 bytes #13
   }
 
-  if (o.mesh.position.y !== recentObjectState?.position.y) {
+  const y = Math.round(o.mesh.position.y * parameters.positonToNetworkFactor);
+  if (y !== recentObjectState?.position.y) {
     providedValues9to16 |= 0b00100000; // 6th bit of 2nd byte
-    view.setFloat32(offset + localOffset, o.mesh?.position.y || 0);
+    view.setInt32(offset + localOffset, y || 0);
     localOffset += 4; // 26 bytes #14
   }
 

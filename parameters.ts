@@ -17,11 +17,14 @@ export const maxSpeed = 13769; // in knots
 export const speedToNetworkFactor = 4.76;
 // on client: const networkToSpeedFactor = 1 / speedToNetworkFactor;
 
+export const positonToNetworkFactor = 0.01;
+// export const networkToPositionFactor = 1 / positonToNetworkFactor;
+
 export const initialSpeed = 0;
 export const minSpeed = 0;
-export const speedFactor = 0.00003;
-export const forceUpToSpeedFactor = 0.04;
-export const forceDownToSpeedFactor = 0.04;
+export const speedFactor = 0.04;
+export const forceUpToSpeedFactor = 0.14;
+export const forceDownToSpeedFactor = 0.14;
 
 export const maxRotationSpeedAbsolute = 127;
 export const rotationFactor = 0.00001;
@@ -31,5 +34,5 @@ export const maxVerticalSpeedAbsolute = 127;
 export const verticalSpeedFactor = 0.001;
 export const forceAscOrDescToVerticalSpeedFactor = 0.01;
 
-export const bulletSpeed = 1000;
-export const bulletSpeedReductionFactor = 0.97;
+export const bulletSpeed = 2000;
+export const bulletSpeedReductionFactor = 0.99;
