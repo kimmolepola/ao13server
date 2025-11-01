@@ -8,6 +8,7 @@ import {
   checkHealth,
   detectCollision,
   gatherUnreliableStateDataBinary,
+  handleLocalObject,
 } from "./logic";
 import { sendUnreliableBinary } from "../service/channels";
 
@@ -19,6 +20,26 @@ let buffer = new ArrayBuffer(types.unreliableStateInfoBytes);
 let view = new DataView(buffer);
 let previousObjectCount = 0;
 let offset = 0;
+let seq = 0;
+
+const handleLocalObjects = (
+  delta: number,
+  gameEventHandler: types.GameEventHandler
+) => {
+  const localObjectsRemoveIndexes = [];
+  for (let i = globals.localGameObjects.length - 1; i > -1; i--) {
+    const o = globals.localGameObjects[i];
+    if (o && o.mesh) {
+      const remove = handleLocalObject(delta, o);
+      remove && localObjectsRemoveIndexes.push(i);
+    }
+  }
+  gameEventHandler({
+    type: types.EventType.RemoveLocalObjectIndexes,
+    data: localObjectsRemoveIndexes,
+  });
+  localObjectsRemoveIndexes.splice(0, localObjectsRemoveIndexes.length);
+};
 
 const handleObjects = (
   delta: number,
@@ -34,6 +55,7 @@ const handleObjects = (
         objectCount * types.unreliableStateSingleObjectMaxBytes
     );
     view = new DataView(buffer);
+    view.setUint16(0, seq);
   }
   offset = types.unreliableStateInfoBytes;
   for (let i = 0; i < objectCount; i++) {
@@ -58,7 +80,6 @@ const handleObjects = (
 };
 
 const incrementAndLoop16BitSequence = () => {
-  let seq = view.getUint16(0);
   seq = (seq + 1) % 65536;
   view.setUint16(0, seq);
 };
@@ -78,6 +99,7 @@ export const runFrame = (
     globals.idsVersionMax255.value ===
       globals.recentlySentState.value?.idsVersionMax255;
 
+  handleLocalObjects(delta, gameEventHandler);
   handleObjects(delta, time, sendUnreliableState, gameEventHandler);
 
   if (sendUnreliableState) {

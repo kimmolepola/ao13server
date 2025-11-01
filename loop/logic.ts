@@ -260,6 +260,17 @@ export const handleShot = (
   o.shotDelay -= Math.min(delta, o.shotDelay);
 };
 
+export const handleLocalObject = (
+  delta: number,
+  gameObject: types.LocalGameObject
+) => {
+  const o = gameObject;
+  o.mesh.translateY(o.speed * parameters.speedFactor * delta);
+  o.speed *= parameters.bulletSpeedReductionFactor;
+  o.timeToLive -= delta;
+  return o.timeToLive < 0;
+};
+
 export const handleMovement = (
   delta: number,
   gameObject: types.SharedGameObject

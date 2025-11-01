@@ -162,6 +162,7 @@ export const handleNewId = async (newId: string) => {
   if (!globals.sharedGameObjects.some((x) => x.id === newId)) {
     await addObject(newId);
     handleSendBaseState();
+    handleSendReliableState();
   }
 };
 
@@ -174,6 +175,7 @@ export const handleRemoveId = (idToRemove: string) => {
     globals.sharedGameObjects.splice(indexToRemove, 1);
     globals.idsVersionMax255.increment();
     handleSendBaseState();
+    handleSendReliableState();
   }
 };
 

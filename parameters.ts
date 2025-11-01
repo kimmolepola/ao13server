@@ -30,3 +30,6 @@ export const forceLeftOrRightToRotationFactor = 0.1;
 export const maxVerticalSpeedAbsolute = 127;
 export const verticalSpeedFactor = 0.001;
 export const forceAscOrDescToVerticalSpeedFactor = 0.01;
+
+export const bulletSpeed = 1000;
+export const bulletSpeedReductionFactor = 0.97;

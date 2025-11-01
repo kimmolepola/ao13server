@@ -2,6 +2,7 @@ import * as crypto from "crypto";
 import * as THREE from "three";
 import * as types from "../types";
 import * as globals from "../globals";
+import * as parameters from "../parameters";
 import { handleRemoveId } from "./objects";
 
 export const gameEventHandler = (gameEvent: types.GameEvent) => {
@@ -20,7 +21,7 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
     }
     case types.EventType.Shot: {
       const id = crypto.randomBytes(12).toString("hex");
-      const speed = gameEvent.data.speed + 2;
+      const speed = gameEvent.data.speed + parameters.bulletSpeed;
       const type = types.GameObjectType.Bullet as types.GameObjectType.Bullet;
       const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
       const mesh = new THREE.Mesh(geometry);
@@ -29,7 +30,7 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
       const collisions = {};
       mesh?.position.copy(gameEvent.data.mesh.position);
       mesh?.quaternion.copy(gameEvent.data.mesh.quaternion);
-      mesh?.translateY(1);
+      mesh?.translateY(0.5);
       globals.localGameObjects.push({
         id,
         type,
