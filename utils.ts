@@ -1,6 +1,10 @@
 import THREE from "three";
 import * as parameters from "./parameters";
 
+export const getAxisValueToNetwork = (axisValue: number) =>
+  axisValue * parameters.positonToNetworkFactor +
+  parameters.positionToNetworkAddition;
+
 const wrapToPi = (angle: number) => {
   let a = angle % (2 * Math.PI);
   if (a > Math.PI) a -= 2 * Math.PI;

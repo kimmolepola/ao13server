@@ -63,15 +63,23 @@ export const checkHealth = (
   }
 };
 
-export const resetControlValues = (gameObject: types.SharedGameObject) => {
+export const refreshControlValues = (gameObject: types.SharedGameObject) => {
   const o = gameObject;
-  o.controlsOverChannelsUp = 0;
-  o.controlsOverChannelsDown = 0;
-  o.controlsOverChannelsLeft = 0;
-  o.controlsOverChannelsRight = 0;
-  o.controlsOverChannelsSpace = 0;
-  o.controlsOverChannelsD = 0;
-  o.controlsOverChannelsF = 0;
+  o.controlsOverChannelsUp -= parameters.unreliableStateInterval;
+  o.controlsOverChannelsDown -= parameters.unreliableStateInterval;
+  o.controlsOverChannelsLeft -= parameters.unreliableStateInterval;
+  o.controlsOverChannelsRight -= parameters.unreliableStateInterval;
+  o.controlsOverChannelsSpace -= parameters.unreliableStateInterval;
+  o.controlsOverChannelsD -= parameters.unreliableStateInterval;
+  o.controlsOverChannelsF -= parameters.unreliableStateInterval;
+
+  o.controlsOverChannelsUp < 0 && (o.controlsOverChannelsUp = 0);
+  o.controlsOverChannelsDown < 0 && (o.controlsOverChannelsDown = 0);
+  o.controlsOverChannelsLeft < 0 && (o.controlsOverChannelsLeft = 0);
+  o.controlsOverChannelsRight < 0 && (o.controlsOverChannelsRight = 0);
+  o.controlsOverChannelsSpace < 0 && (o.controlsOverChannelsSpace = 0);
+  o.controlsOverChannelsD < 0 && (o.controlsOverChannelsD = 0);
+  o.controlsOverChannelsF < 0 && (o.controlsOverChannelsF = 0);
 };
 
 export const handleShot = (

@@ -2,7 +2,7 @@ import nodeDataChannel, { IceServer, DescriptionType } from "node-datachannel";
 import { HubConnection } from "@microsoft/signalr";
 import * as types from "./types";
 import * as api from "./api";
-import { onMessage, onMessageBinary } from "./service/service";
+import { onReceiveString, onReceiveControls } from "./service/service";
 import * as globals from "./globals";
 
 // const backendUrl = "http://localhost:5095";
@@ -27,9 +27,10 @@ const createPeerConnection = (
   const client = {
     id: peerId,
     peerConnection,
-    reliableChannel: null,
-    reliableChannelBinary: null,
-    unreliableChannelBinary: null,
+    stringChannel: null,
+    ackChannel: null,
+    controlsChannel: null,
+    stateChannel: null,
   };
   globals.clients.array.push(client);
   globals.clients.map[peerId] = client;
@@ -80,30 +81,35 @@ const createPeerConnection = (
   peerConnection.onDataChannel((dc) => {
     const label = dc.getLabel();
     const client = globals.clients.map[peerId];
-    if (client && label === "reliable") {
-      client.reliableChannel = dc;
+    if (client && label === "string-reliable") {
+      client.stringChannel = dc;
     }
-    if (client && label === "reliable-binary") {
-      client.reliableChannelBinary = dc;
+    if (client && label === "ack-reliable") {
+      client.controlsChannel = dc;
     }
-    if (client && label === "unreliable-binary") {
-      client.unreliableChannelBinary = dc;
+    if (client && label === "state-unreliable") {
+      client.stateChannel = dc;
+    }
+    if (client && label === "controls-unreliable") {
+      client.controlsChannel = dc;
     }
     dc.onOpen(() => {
       console.log("Peer", peerId, "Data channel opened", label);
-      label === "reliable" && onChannelsChanged(peerId);
+      label === "string-reliable" && onChannelsChanged(peerId);
     });
     dc.onClosed(() => {
       console.log("Peer", peerId, "Data channel closed", label);
-      label === "reliable" && onChannelsChanged(peerId);
+      label === "string-reliable" && onChannelsChanged(peerId);
     });
     dc.onMessage((msg) => {
       switch (label) {
-        case "reliable":
-          onMessage(msg, peerId, dc);
+        case "string-reliable":
+          onReceiveString(msg, peerId, dc);
           break;
-        case "unreliable-binary":
-          onMessageBinary(msg, peerId);
+        case "controls-unreliable":
+          onReceiveControls(msg, peerId);
+          break;
+        case "ack-reliable":
           break;
         default:
           break;

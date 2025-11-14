@@ -9,7 +9,7 @@ dotenv.config();
 
 const onChannelsChanged = (peerId: string) => {
   const client = globals.clients.map[peerId];
-  if (client && client.reliableChannel?.isOpen()) {
+  if (client && client.stringChannelReliable?.isOpen()) {
     console.log(`Connection open for peer ${peerId}`);
     handleNewId(peerId);
   } else {
