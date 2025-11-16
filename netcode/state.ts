@@ -1,9 +1,6 @@
 import * as globals from "../globals";
 import * as types from "../types";
-import {
-  getAxisValueToNetwork,
-  encodeQuaternionWithOnlyZRotation,
-} from "../utils";
+import { encodeAxisValue, encodeQuaternionWithOnlyZRotation } from "../utils";
 import { sendUnreliableBinary } from "../service/channels";
 
 const sequenceNumberBytes = 1;
@@ -138,8 +135,8 @@ export const gatherStateData = (
   const o = gameObject;
 
   const idOverNetwork = o.idOverNetwork;
-  const x = getAxisValueToNetwork(o.mesh.position.x);
-  const y = getAxisValueToNetwork(o.mesh.position.y);
+  const x = encodeAxisValue(o.mesh.position.x);
+  const y = encodeAxisValue(o.mesh.position.y);
   const z = o.positionZ;
   const angleZ = encodeQuaternionWithOnlyZRotation(o.mesh.quaternion);
   const ____ctrlsUp = o.controlsOverChannelsUp;
@@ -258,14 +255,13 @@ export const gatherStateData = (
   ____indexHasChanged && setUint8(idOverNetwork);
   _controlsHasChanged && setUint8(controls);
   ___healthHasChanged && setUint8(healthByte);
+  providedBytesForPositionAndAngleHasChanged &&
+    setUint8(providedBytesForPositionAndAngle);
 
   insertChangedBytes(xDifferenceSignificance, xBytes);
   insertChangedBytes(yDifferenceSignificance, yBytes);
   insertChangedBytes(zDifferenceSignificance, zBytes);
   insertChangedBytes(angleZDifferenceSignificance, angleZBytes);
-
-  providedBytesForPositionAndAngleHasChanged &&
-    setUint8(providedBytesForPositionAndAngle);
 
   // local offset max total 17 bytes
   // if (localOffset > types.unreliableStateSingleObjectMaxBytes) {

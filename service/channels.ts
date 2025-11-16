@@ -8,8 +8,8 @@ export const sendReliableStringSingleClient = (
   const stringData = JSON.stringify(data);
   try {
     const client = globals.clients.map[id];
-    if (client.stringChannelReliable?.isOpen) {
-      client.stringChannelReliable.sendMessage(stringData);
+    if (client.stringChannel?.isOpen) {
+      client.stringChannel.sendMessage(stringData);
     }
   } catch (error) {
     console.error(
@@ -27,8 +27,8 @@ export const sendReliableString = (
   const stringData = JSON.stringify(data);
   try {
     globals.clients.array.forEach((x) => {
-      if (x.stringChannelReliable?.isOpen()) {
-        x.stringChannelReliable.sendMessage(stringData);
+      if (x.stringChannel?.isOpen()) {
+        x.stringChannel.sendMessage(stringData);
       }
     });
   } catch (error) {

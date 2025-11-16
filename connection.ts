@@ -87,11 +87,11 @@ const createPeerConnection = (
     if (client && label === "ack-reliable") {
       client.controlsChannel = dc;
     }
-    if (client && label === "state-unreliable") {
-      client.stateChannel = dc;
-    }
     if (client && label === "controls-unreliable") {
       client.controlsChannel = dc;
+    }
+    if (client && label === "state-unreliable") {
+      client.stateChannel = dc;
     }
     dc.onOpen(() => {
       console.log("Peer", peerId, "Data channel opened", label);

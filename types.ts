@@ -177,19 +177,15 @@ export type BaseStateObject = {
 //       1: idOverNetwork                                                               |
 //       2: controls                                                                    |
 //       3: health                                                                      |
-//       4: providedBytesForPositionAndAngle                                            |
-//       5: positionX                                                                   |
-//       6: positionY                                                                   |
-//       7: positionZ                                                                   |
-//       8: angleZ                                                                      |
+//       4: positionX                                                                   |
+//       5: positionY                                                                   |
+//       6: positionZ                                                                   |
+//       7: angleZ                                                                      |
+//       8: providedBytesForPositionAndAngle                                            |
 //     Uint8 idOverNetwork? #1                                                          2
 //     Uint8 controls? #2 (1:up 2:down 3:left 4:right 5:space 6:keyD 7:keyF)            3
 //     Uint8 health? #3                                                                 4
-//     Uint8*1-4 positionX? #3 (unit is cm * positonToNetworkFactor (0.01) = meter)     8
-//     Uint8*1-4 positionY? #4 (unit is cm * positonToNetworkFactor (0.01) = meter)     12
-//     Uint8*1-2 positionZ? #5 (unit is feet)                                           14
-//     Uint8*1-2 angleZ? #6                                                             16
-//     Uint8 providedBytesForPositionAndAngle? #4 (6 bits in use)                       17
+//     Uint8 providedBytesForPositionAndAngle? #4 (6 bits in use)                       5
 //       1&2 positionX:                                                                 |
 //         [00]: 1 byte                                                                 |
 //         [01]: 2 bytes                                                                |
@@ -206,6 +202,10 @@ export type BaseStateObject = {
 //       6 angleZ:                                                                      |
 //         [0]: 1 byte                                                                  |
 //         [1]: 2 bytes                                                                 |
+//     Uint8*1-4 positionX? #3 (unit is cm * positonToNetworkFactor (0.01) = meter)     9
+//     Uint8*1-4 positionY? #4 (unit is cm * positonToNetworkFactor (0.01) = meter)     13
+//     Uint8*1-2 positionZ? #5 (unit is feet)                                           15
+//     Uint8*1-2 angleZ? #6                                                             17
 //   ]
 // ]
 

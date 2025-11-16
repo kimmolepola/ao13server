@@ -18,10 +18,10 @@ export const maxSpeed = 13769; // in knots
 export const speedToNetworkFactor = 4.76;
 // on client: const networkToSpeedFactor = 1 / speedToNetworkFactor;
 
-export const positonToNetworkFactor = 0.01;
+export const positionToNetworkFactor = 0.01;
 // export const networkToPositionFactor = 1 / positonToNetworkFactor;
-export const positionToNetworkAddition = 2147483648;
-// export const networkToPositionAddition = -2147483648;
+export const positionToNetworkAddition = 0xffffffff / 2;
+// export const networkToPositionAddition = -positionToNetworkAddition;
 
 export const initialSpeed = 0;
 export const minSpeed = 0;

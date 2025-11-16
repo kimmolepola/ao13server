@@ -1,8 +1,8 @@
 import THREE from "three";
 import * as parameters from "./parameters";
 
-export const getAxisValueToNetwork = (axisValue: number) =>
-  axisValue * parameters.positonToNetworkFactor +
+export const encodeAxisValue = (axisValue: number) =>
+  axisValue * parameters.positionToNetworkFactor +
   parameters.positionToNetworkAddition;
 
 const wrapToPi = (angle: number) => {
