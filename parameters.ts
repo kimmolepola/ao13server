@@ -10,6 +10,9 @@ export const reliableStateInterval = 5000;
 export const maxExpectedReliableTransmissionDelay = 500; // ms
 export const clientSendInterval = 1000 / 20;
 export const angleMaxValue = 65535;
+export const maxRemoteObjects = 256;
+export const stateMaxSequenceNumber = 255;
+export const recentStateSlotLength = 32;
 
 // fastest projectile speed 25500 km/h ~ 13769 knots
 // 16 bit max value is 65535

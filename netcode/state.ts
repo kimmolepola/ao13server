@@ -1,5 +1,6 @@
 import * as globals from "../globals";
 import * as types from "../types";
+import * as parameters from "../parameters";
 import { encodeAxisValue, encodeQuaternionWithOnlyZRotation } from "../utils";
 import { sendUnreliableBinary } from "../service/channels";
 
@@ -32,8 +33,21 @@ const resetRecentStatesCurrentSequence = () => {
 
 const getComparisonSeqNumber = () => (sequenceNumber + 256 - 32) & 0xff;
 
+// const getStateToCompareTo = () => {
+//   console.log("--getComparisonSeqNumber():", getComparisonSeqNumber());
+//   return recentStates[getComparisonSeqNumber()];
+// };
+
 const getStateToCompareTo = () => {
-  return recentStates[getComparisonSeqNumber()];
+  const maxSequenceNumber = parameters.stateMaxSequenceNumber;
+  const sequenceNumbers = maxSequenceNumber + 1;
+  const slotLength = parameters.recentStateSlotLength;
+  const remainder = sequenceNumber % slotLength;
+  const slotStart = sequenceNumber - remainder;
+  const difference = slotStart - slotLength;
+  const previousSlotStart = (difference + sequenceNumbers) & maxSequenceNumber;
+  const recentState = recentStates[previousSlotStart];
+  return recentState;
 };
 
 const handle8BitSequenceNumber = () => {
@@ -60,11 +74,12 @@ const syncBufferSize = () => {
 
 const getUint8Bytes = (num: number) => {
   const uint32 = num >>> 0; // Coerce to unsigned 32-bit
+
   return [
-    uint32 & 0xff,
-    (uint32 >>> 8) & 0xff,
-    (uint32 >>> 16) & 0xff,
     (uint32 >>> 24) & 0xff,
+    (uint32 >>> 16) & 0xff,
+    (uint32 >>> 8) & 0xff,
+    uint32 & 0xff,
   ];
 };
 
@@ -262,6 +277,8 @@ export const gatherStateData = (
   insertChangedBytes(yDifferenceSignificance, yBytes);
   insertChangedBytes(zDifferenceSignificance, zBytes);
   insertChangedBytes(angleZDifferenceSignificance, angleZBytes);
+
+  console.log("--x:", o.mesh.position.x, x, xBytes);
 
   // local offset max total 17 bytes
   // if (localOffset > types.unreliableStateSingleObjectMaxBytes) {

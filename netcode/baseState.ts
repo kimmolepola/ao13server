@@ -8,6 +8,7 @@ export const handleSendBaseState = () => {
     isPlayer: x.isPlayer,
     username: x.username,
     score: x.score,
+    idOverNetwork: x.idOverNetwork,
   }));
   sendReliableString({ type: types.ServerStringDataType.BaseState, data });
 };
