@@ -2,7 +2,11 @@ import nodeDataChannel, { IceServer, DescriptionType } from "node-datachannel";
 import { HubConnection } from "@microsoft/signalr";
 import * as types from "./types";
 import * as api from "./api";
-import { onReceiveString, onReceiveControls } from "./service/service";
+import {
+  onReceiveString,
+  onReceiveControls,
+  onReceiveAck,
+} from "./service/service";
 import * as globals from "./globals";
 
 // const backendUrl = "http://localhost:5095";
@@ -110,6 +114,7 @@ const createPeerConnection = (
           onReceiveControls(msg, peerId);
           break;
         case "ack-reliable":
+          onReceiveAck(msg, peerId);
           break;
         default:
           break;
