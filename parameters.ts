@@ -6,8 +6,6 @@ export const shotDelay = 50;
 export const tickRate = 1000 / 60; // FPS
 // netcode
 export const unreliableStateInterval = 1000 / 20; // FPS
-export const reliableStateInterval = 5000;
-export const maxExpectedReliableTransmissionDelay = 500; // ms
 export const clientSendInterval = 1000 / 20;
 export const angleMaxValue = 65535;
 export const maxRemoteObjects = 256;

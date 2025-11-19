@@ -31,13 +31,6 @@ const resetRecentStatesCurrentSequence = () => {
   }
 };
 
-const getComparisonSeqNumber = () => (sequenceNumber + 256 - 32) & 0xff;
-
-// const getStateToCompareTo = () => {
-//   console.log("--getComparisonSeqNumber():", getComparisonSeqNumber());
-//   return recentStates[getComparisonSeqNumber()];
-// };
-
 const getStateToCompareTo = () => {
   const maxSequenceNumber = parameters.stateMaxSequenceNumber;
   const sequenceNumbers = maxSequenceNumber + 1;
@@ -50,8 +43,7 @@ const getStateToCompareTo = () => {
   return recentState;
 };
 
-const handle8BitSequenceNumber = () => {
-  view.setUint8(0, sequenceNumber);
+const increment8BitSequenceNumber = () => {
   sequenceNumber = (sequenceNumber + 1) & 0xff;
 };
 
@@ -68,7 +60,6 @@ const syncBufferSize = () => {
       objectCount * types.unreliableStateSingleObjectMaxBytes;
     buffer = new ArrayBuffer(maxBytes);
     view = new DataView(buffer);
-    handle8BitSequenceNumber();
   }
 };
 
@@ -84,12 +75,12 @@ const getUint8Bytes = (num: number) => {
 };
 
 const getDifferenceSignificance = (
-  uint8BytesA: number[],
-  uint8BytesB: number[]
+  arrayOf4bytesBigEndianA: number[], // array of 4 bytes
+  arrayOf4BytesBigEndianB: number[] // array of 4 bytes
 ) => {
-  for (let i = uint8BytesA.length - 1; i--; i <= 0) {
-    if (uint8BytesA[i] !== uint8BytesB[i]) {
-      return i + 1;
+  for (let i = 0; i < arrayOf4bytesBigEndianA.length; i++) {
+    if (arrayOf4bytesBigEndianA[i] !== arrayOf4BytesBigEndianB[i]) {
+      return Math.abs(i - 4);
     }
   }
   return 0;
@@ -104,7 +95,7 @@ const acknowledgements: {
 };
 
 const resetExpectedAcks = () => {
-  acknowledgements.expectedSequenceNumber = getComparisonSeqNumber();
+  acknowledgements.expectedSequenceNumber = sequenceNumber;
   acknowledgements.acknowledged = {};
 };
 
@@ -122,6 +113,13 @@ const checkAcks = () => {
   }
 };
 
+export const resetRecentStates = () => {
+  for (const key of Object.keys(recentStates)) {
+    const num = Number.parseInt(key);
+    recentStates[num] = { acknowledged: false, state: {} };
+  }
+};
+
 export const receiveAck = (seqNum: number, clientId: string) => {
   if (acknowledgements.expectedSequenceNumber === seqNum) {
     acknowledgements.acknowledged[clientId] = true;
@@ -130,7 +128,7 @@ export const receiveAck = (seqNum: number, clientId: string) => {
 
 export const sendState = () => {
   sendUnreliableBinary(Buffer.from(buffer, 0, offset));
-  handle8BitSequenceNumber();
+  increment8BitSequenceNumber();
 };
 
 export const handleNewSequence = () => {
@@ -141,6 +139,7 @@ export const handleNewSequence = () => {
     resetRecentStatesCurrentSequence();
     resetExpectedAcks();
   }
+  view.setUint8(0, sequenceNumber);
 };
 
 export const gatherStateData = (
@@ -193,9 +192,9 @@ export const gatherStateData = (
   const stateToCompareTo = getStateToCompareTo();
   const oState = stateToCompareTo.state[idOverNetwork];
   if (oState && stateToCompareTo.acknowledged) {
-    index !== oState.index && (____indexHasChanged = true);
-    controls !== oState.controls && (_controlsHasChanged = true);
-    healthByte !== oState.health && (___healthHasChanged = true);
+    index === oState.index && (____indexHasChanged = false);
+    controls === oState.controls && (_controlsHasChanged = false);
+    healthByte === oState.health && (___healthHasChanged = false);
     const oXBytes = getUint8Bytes(oState.x);
     xDifferenceSignificance = getDifferenceSignificance(xBytes, oXBytes);
     const oYBytes = getUint8Bytes(oState.y);
@@ -209,10 +208,10 @@ export const gatherStateData = (
     );
   }
 
-  xDifferenceSignificance > 0 && (________xHasChanged = true);
-  yDifferenceSignificance > 0 && (________yHasChanged = true);
-  zDifferenceSignificance > 0 && (________zHasChanged = true);
-  angleZDifferenceSignificance > 0 && (___angleZHasChanged = true);
+  xDifferenceSignificance === 0 && (________xHasChanged = false);
+  yDifferenceSignificance === 0 && (________yHasChanged = false);
+  zDifferenceSignificance === 0 && (________zHasChanged = false);
+  angleZDifferenceSignificance === 0 && (___angleZHasChanged = false);
 
   let providedBytesForPositionAndAngle = 0b00000000;
 
@@ -237,7 +236,7 @@ export const gatherStateData = (
 
   const a = providedBytesForPositionAndAngle;
   const b = oState?.providedBytesForPositionAndAngle;
-  a !== b && (providedBytesForPositionAndAngleHasChanged = true);
+  a === b && (providedBytesForPositionAndAngleHasChanged = false);
 
   let providedValues1to8 = 0b00000000;
   ____indexHasChanged && (providedValues1to8 |= 0b00000001);
@@ -259,10 +258,10 @@ export const gatherStateData = (
 
   const insertChangedBytes = (
     differenceSignificance: number,
-    bytes: number[]
+    arrayOf4BytesBigEndian: number[]
   ) => {
-    for (let i = 0; i < differenceSignificance; i++) {
-      setUint8(bytes[i]);
+    for (let i = 4 - differenceSignificance; i < 4; i++) {
+      setUint8(arrayOf4BytesBigEndian[i]);
     }
   };
 
@@ -277,8 +276,6 @@ export const gatherStateData = (
   insertChangedBytes(yDifferenceSignificance, yBytes);
   insertChangedBytes(zDifferenceSignificance, zBytes);
   insertChangedBytes(angleZDifferenceSignificance, angleZBytes);
-
-  console.log("--x:", o.mesh.position.x, x, xBytes);
 
   // local offset max total 17 bytes
   // if (localOffset > types.unreliableStateSingleObjectMaxBytes) {

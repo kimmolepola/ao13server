@@ -5,6 +5,7 @@ import * as THREE from "three";
 import * as globals from "../globals";
 import { handleSendBaseState } from "../netcode/baseState";
 import { handleSendQueue } from "../netcode/queue";
+import { resetRecentStates } from "../netcode/state";
 
 const generateIdOverNetwork = () => {
   for (let i = 0; i < parameters.maxSharedObjects; i++) {
@@ -96,6 +97,7 @@ export const savePlayerData = async () => {
 export const handleNewId = async (newId: string) => {
   if (!globals.sharedGameObjects.some((x) => x.id === newId)) {
     if (globals.sharedGameObjects.length < parameters.maxSharedObjects) {
+      resetRecentStates();
       await addObject(newId);
       handleSendBaseState();
     } else {

@@ -4,6 +4,7 @@ import { handleNewId, handleRemoveId } from "./service/objects";
 import * as globals from "./globals";
 import { startIntervals } from "./service/intervals";
 import dotenv from "dotenv";
+import * as parameters from "./parameters";
 
 dotenv.config();
 
