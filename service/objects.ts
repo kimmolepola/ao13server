@@ -118,23 +118,22 @@ export const handleRemoveId = (idToRemove: string) => {
   }
 };
 
-const clientSendInterval = parameters.clientSendInterval;
 export const receiveControlsData = (remoteId: string, data: types.Controls) => {
   const o = globals.sharedGameObjects.find((x) => x.id === remoteId);
   if (o) {
-    o.controlsUp += data.up ? clientSendInterval : 0;
-    o.controlsDown += data.down ? clientSendInterval : 0;
-    o.controlsLeft += data.left ? clientSendInterval : 0;
-    o.controlsRight += data.right ? clientSendInterval : 0;
-    o.controlsSpace += data.space ? clientSendInterval : 0;
-    o.controlsD += data.d ? clientSendInterval : 0;
-    o.controlsF += data.f ? clientSendInterval : 0;
-    o.controlsOverChannelsUp += data.up ? clientSendInterval : 0;
-    o.controlsOverChannelsDown += data.down ? clientSendInterval : 0;
-    o.controlsOverChannelsLeft += data.left ? clientSendInterval : 0;
-    o.controlsOverChannelsRight += data.right ? clientSendInterval : 0;
-    o.controlsOverChannelsSpace += data.space ? clientSendInterval : 0;
-    o.controlsOverChannelsD += data.d ? clientSendInterval : 0;
-    o.controlsOverChannelsF += data.f ? clientSendInterval : 0;
+    o.controlsUp += data.up;
+    o.controlsDown += data.down;
+    o.controlsLeft += data.left;
+    o.controlsRight += data.right;
+    o.controlsSpace += data.space;
+    o.controlsD += data.d;
+    o.controlsF += data.f;
+    o.controlsOverChannelsUp += data.up;
+    o.controlsOverChannelsDown += data.down;
+    o.controlsOverChannelsLeft += data.left;
+    o.controlsOverChannelsRight += data.right;
+    o.controlsOverChannelsSpace += data.space;
+    o.controlsOverChannelsD += data.d;
+    o.controlsOverChannelsF += data.f;
   }
 };

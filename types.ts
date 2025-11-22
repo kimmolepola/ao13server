@@ -156,20 +156,7 @@ export type BaseStateObject = {
   score: number;
 };
 
-// Reliable-State shape (1 + n * 14 bytes)
-// [
-//   Uint8 sequence number (1 byte)
-//   ...game object data (14 bytes each): [                                     bytes cumulative
-//     Uint8*1 idOverNetwork                                                    1
-//     Uint8*1 health                                                           2
-//     Uint8*4 positionX (unit is cm * positonToNetworkFactor (0.01) = meter)   6
-//     Uint8*4 positionY (unit is cm * positonToNetworkFactor (0.01) = meter)   10
-//     Uint8*2 positionZ (unit is feet)                                         12
-//     Uint8*2 angleZ                                                           14
-//   ]
-// ]
-
-// Unreliable-State shape (1 + n * 1-17 bytes)
+// State shape (1 + n * 1-17 bytes)
 // [
 //   Uint8 sequence number (1 byte)
 //   ...game object data (1-17 bytes each): [                                           bytes cumulative max
@@ -209,9 +196,20 @@ export type BaseStateObject = {
 //   ]
 // ]
 
-// ControlsBinary shape (1 byte)
+// Controls shape (1-5 bytes)
 // [
-//     Uint8 controls? #7 (1:up 2:down 3:left 4:right 5:space 6:keyD 7:keyF)
+//     Uint8 providedControls1to7 (1:up 2:down 3:left 4:right 5:space 6:keyD 7:keyF)
+//     Uint8
+//       1-4 providedControl1?
+//       5-8 providedControl2?
+//     Uint8
+//       1-4 providedControl3?
+//       5-8 providedControl4?
+//     Uint8
+//       1-4 providedControl5?
+//       5-8 providedControl6?
+//     Uint8
+//       1-4 providedControl7?
 // ]
 
 export type ReliableStateBinary = Uint8Array;
