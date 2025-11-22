@@ -2,12 +2,14 @@ import { DataChannel } from "node-datachannel";
 import * as types from "../types";
 import * as globals from "../globals";
 import { startLoop } from "../loop/loop";
-import { sendReliable } from "./channels";
-import { handleReceiveControlsData } from "./objects";
+import { sendReliableString } from "./channels";
+import { receiveControlsData } from "./objects";
 import { gameEventHandler } from "./events";
-import { receiveBinaryMessage } from "../netcode/message";
+import { decodeControls } from "../netcode/controls";
+import { handleReceiveAck } from "../netcode/ack";
+import { receiveAck } from "../netcode/state";
 
-export const onMessage = (
+export const onReceiveString = (
   msg: string | ArrayBuffer | Buffer<ArrayBufferLike>,
   clientId: string,
   dc: DataChannel
@@ -28,7 +30,7 @@ export const onMessage = (
           globals.sharedGameObjects.find((x) => x.id === clientId)?.username ||
           "",
       };
-      sendReliable({
+      sendReliableString({
         ...message,
         type: types.ServerStringDataType.ChatMessage_Server,
       });
@@ -39,12 +41,20 @@ export const onMessage = (
   }
 };
 
-export const onMessageBinary = (
+export const onReceiveControls = (
   msg: string | ArrayBuffer | Buffer<ArrayBufferLike>,
   clientId: string
 ) => {
-  const data = receiveBinaryMessage(msg);
-  handleReceiveControlsData(clientId, data);
+  const data = decodeControls(msg);
+  receiveControlsData(clientId, data);
+};
+
+export const onReceiveAck = (
+  msg: string | ArrayBuffer | Buffer<ArrayBufferLike>,
+  clientId: string
+) => {
+  const sequenceNumber = handleReceiveAck(msg);
+  receiveAck(sequenceNumber, clientId);
 };
 
 export const run = () => {

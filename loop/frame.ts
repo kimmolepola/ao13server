@@ -2,7 +2,7 @@ import * as types from "../types";
 import * as parameters from "../parameters";
 import * as globals from "../globals";
 import {
-  resetControlValues,
+  refreshControlValues,
   handleMovement,
   handleShot,
   checkHealth,
@@ -10,11 +10,10 @@ import {
   handleLocalObject,
 } from "./logic";
 import {
-  sendUnreliableState,
-  syncBufferSize,
-  gatherUnreliableStateDataBinary,
-  resetUnreliableStateOffset,
-} from "../netcode/unreliableState";
+  sendState,
+  gatherStateData,
+  handleNewSequence,
+} from "../netcode/state";
 
 const scoreTimeInteval = 9875;
 
@@ -43,12 +42,12 @@ const handleLocalObjects = (
 const handleObjects = (
   delta: number,
   time: number,
-  gatherUnreliableState: boolean,
+  gatherState: boolean,
   gameEventHandler: types.GameEventHandler
 ) => {
-  syncBufferSize();
+  gatherState && handleNewSequence();
+
   const objectCount = globals.sharedGameObjects.length;
-  resetUnreliableStateOffset();
   for (let i = 0; i < objectCount; i++) {
     const o = globals.sharedGameObjects[i];
     if (o) {
@@ -62,9 +61,9 @@ const handleObjects = (
         o.score += 1;
       }
       // <-
-      if (gatherUnreliableState) {
-        gatherUnreliableStateDataBinary(o);
-        resetControlValues(o);
+      if (gatherState) {
+        gatherStateData(i, o);
+        refreshControlValues(o);
       }
     }
   }
@@ -75,16 +74,13 @@ export const runFrame = (
   gameEventHandler: types.GameEventHandler
 ) => {
   const time = Date.now();
-  const shouldSendUnreliableState =
-    time > nextSendTime &&
-    globals.idsVersionMax255.value ===
-      globals.recentlySentState.value?.idsVersionMax255;
+  const shouldSendState = time > nextSendTime;
 
   handleLocalObjects(delta, gameEventHandler);
-  handleObjects(delta, time, shouldSendUnreliableState, gameEventHandler);
+  handleObjects(delta, time, shouldSendState, gameEventHandler);
 
-  if (shouldSendUnreliableState) {
+  if (shouldSendState) {
     nextSendTime = time + parameters.unreliableStateInterval;
-    sendUnreliableState();
+    sendState();
   }
 };

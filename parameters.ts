@@ -1,3 +1,4 @@
+export const maxSharedObjects = 256;
 export const savePlayerDataInterval = 100000;
 export const interpolationAlpha = 0.025;
 export const chatMessageTimeToLive = 60000;
@@ -5,10 +6,13 @@ export const shotDelay = 50;
 export const tickRate = 1000 / 60; // FPS
 // netcode
 export const unreliableStateInterval = 1000 / 20; // FPS
-// export const sendInterval = 2000;
-export const reliableStateInterval = 5000;
-export const maxExpectedReliableTransmissionDelay = 500; // ms
+export const clientSendInterval = 1000 / 20;
 export const angleMaxValue = 65535;
+export const maxRemoteObjects = 256;
+export const stateMaxSequenceNumber = 255;
+export const recentStateSlotLength = 32;
+const controlToNetworkFactor = 0.15;
+export const networkToControlFactor = 1 / controlToNetworkFactor;
 
 // fastest projectile speed 25500 km/h ~ 13769 knots
 // 16 bit max value is 65535
@@ -17,8 +21,10 @@ export const maxSpeed = 13769; // in knots
 export const speedToNetworkFactor = 4.76;
 // on client: const networkToSpeedFactor = 1 / speedToNetworkFactor;
 
-export const positonToNetworkFactor = 0.01;
+export const positionToNetworkFactor = 0.01;
 // export const networkToPositionFactor = 1 / positonToNetworkFactor;
+export const positionToNetworkAddition = 0xffffffff / 2;
+// export const networkToPositionAddition = -positionToNetworkAddition;
 
 export const initialSpeed = 0;
 export const minSpeed = 0;

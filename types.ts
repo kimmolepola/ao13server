@@ -1,26 +1,38 @@
 import { PeerConnection, DataChannel } from "node-datachannel";
 import * as THREE from "three";
 
-// 2 bytes for sequence number, 1 byte for associated reliable-state sequence number
-export const unreliableStateInfoBytes = 3;
+export const recentStatesLength = 8; // sequence number max value 256 / 32 = 8
 
-export const reliableStateSingleObjectBytes = 41;
-export const unreliableStateSingleObjectMaxBytes = 32;
-
-export type RecentlySentStateObjectData = {
-  [id: string]: Omit<SharedGameObject, "mesh"> & {
-    mesh: undefined;
-    position: { x: number; y: number; z: number };
-    // quaternion: { x: number; y: number; z: number; w: number };
-    angleZ: number;
-  };
+export const reliableStateSingleObjectBytes = 14;
+export const reliableStateOffsets = {
+  idOverNetwork: 0,
+  health: 1,
+  positionX: 2,
+  positionY: 6,
+  positionZ: 10,
+  angleZ: 12,
 };
 
-export type RecentlySentState = {
-  value?: {
-    idsVersionMax255: number;
-    sequenceNumberMax255: number;
-    data: RecentlySentStateObjectData;
+export const unreliableStateSingleObjectMaxBytes = 17;
+
+export type RecentStates = {
+  [sequenceNumber: number]: {
+    acknowledged: boolean;
+    state: {
+      [idOverNetwork: number]:
+        | {
+            index: number;
+            idOverNetwork: number;
+            controls: number;
+            health: number;
+            providedBytesForPositionAndAngle: number;
+            x: number;
+            y: number;
+            z: number;
+            angleZ: number;
+          }
+        | undefined;
+    };
   };
 };
 
@@ -38,6 +50,7 @@ export interface LocalGameObject extends GameObject {
 }
 
 export interface SharedGameObject extends GameObject {
+  idOverNetwork: number; // 0-255
   health: number;
   type: GameObjectType.Fighter;
   isPlayer: boolean;
@@ -111,6 +124,7 @@ export enum ClientStringDataType {
 export enum ServerStringDataType {
   ChatMessage_Server = "ChatMessage_Server",
   BaseState = "BaseState",
+  Queue = "Queue",
 }
 
 export type ChatMessageFromClient = {
@@ -139,64 +153,63 @@ export type BaseStateObject = {
   id: string;
   isPlayer: boolean;
   username: string;
+  score: number;
 };
 
-// Reliable-State shape (1 + n * 41 bytes)
+// State shape (1 + n * 1-17 bytes)
 // [
 //   Uint8 sequence number (1 byte)
-//   ...stateDataInOrder (41 bytes each): [
-//     Uint32 guid part 1
-//     Uint32 guid part 2
-//     Uint32 guid part 3
-//     Uint32 guid part 4
-//     Uint32 score
-//     Uint8 health
-//     Int8 rotationSpeed
-//     Int8 verticalSpeed
-//     Uint16 speed
-//     Int32 positionX
-//     Int32 positionY
-//     Int32 positionZ
-//     Uint16 angleZ
+//   ...game object data (1-17 bytes each): [                                           bytes cumulative max
+//     Uint8 providedValues1to8                                                         1
+//       1: idOverNetwork                                                               |
+//       2: controls                                                                    |
+//       3: health                                                                      |
+//       4: positionX                                                                   |
+//       5: positionY                                                                   |
+//       6: positionZ                                                                   |
+//       7: angleZ                                                                      |
+//       8: providedBytesForPositionAndAngle                                            |
+//     Uint8 idOverNetwork? #1                                                          2
+//     Uint8 controls? #2 (1:up 2:down 3:left 4:right 5:space 6:keyD 7:keyF)            3
+//     Uint8 health? #3                                                                 4
+//     Uint8 providedBytesForPositionAndAngle? #4 (6 bits in use)                       5
+//       1&2 positionX:                                                                 |
+//         [00]: 1 byte                                                                 |
+//         [01]: 2 bytes                                                                |
+//         [10]: 3 bytes                                                                |
+//         [11]: 4 bytes                                                                |
+//       3&4 positionY:                                                                 |
+//         [00]: 1 byte                                                                 |
+//         [01]: 2 bytes                                                                |
+//         [10]: 3 bytes                                                                |
+//         [11]: 4 bytes                                                                |
+//       5 positionZ:                                                                   |
+//         [0]: 1 byte                                                                  |
+//         [1]: 2 bytes                                                                 |
+//       6 angleZ:                                                                      |
+//         [0]: 1 byte                                                                  |
+//         [1]: 2 bytes                                                                 |
+//     Uint8*1-4 positionX? #3 (unit is cm * positonToNetworkFactor (0.01) = meter)     9
+//     Uint8*1-4 positionY? #4 (unit is cm * positonToNetworkFactor (0.01) = meter)     13
+//     Uint8*1-2 positionZ? #5 (unit is feet)                                           15
+//     Uint8*1-2 angleZ? #6                                                             17
 //   ]
 // ]
 
-// Unreliable-State shape (3 + n * 2-32 bytes)
+// Controls shape (1-5 bytes)
 // [
-//   Uint16 sequence number (2 bytes)
-//   Uint8 sequence number of associated reliable-state (1 byte)
-//   ...game object data (2-32 bytes each): [
-//     Uint8 providedValues1to8
-//     Uint8 providedValues9to16
-//     Uint32 score? #1
-//     Uint8 health? #2
-//     Uint8 controlsUp? #3
-//     Uint8 controlsDown? #4
-//     Uint8 controlsLeft? #5
-//     Uint8 controlsRight? #6
-//     Uint8 controlsSpace? #7
-//     Uint8 controlsD? #8
-//     Uint8 controlsF? #9
-//     Int8 rotationSpeed? #10
-//     int8 verticalSpeed? #11
-//     Uint16 speed? #12
-//     Int32 positionX? #13
-//     Int32 positionY? #14
-//     Int32 positionZ? #15
-//     Uint16 angleZ? #16
-//   ]
-// ]
-
-// ControlsBinary shape (1-8 bytes)
-// [
-//   Uint8 providedValues
-//   Uint8 up?
-//   Uint8 down?
-//   Uint8 left?
-//   Uint8 right?
-//   Uint8 space?
-//   Uint8 d?
-//   Uint8 f?
+//     Uint8 providedControls1to7 (1:up 2:down 3:left 4:right 5:space 6:keyD 7:keyF)
+//     Uint8
+//       1-4 providedControl1?
+//       5-8 providedControl2?
+//     Uint8
+//       1-4 providedControl3?
+//       5-8 providedControl4?
+//     Uint8
+//       1-4 providedControl5?
+//       5-8 providedControl6?
+//     Uint8
+//       1-4 providedControl7?
 // ]
 
 export type ReliableStateBinary = Uint8Array;
@@ -207,6 +220,11 @@ export type BaseState = {
   data: BaseStateObject[];
 };
 
+export type Queue = {
+  type: ServerStringDataType.Queue;
+  queuePosition: number;
+};
+
 export type ClientStringData = ChatMessageFromClient;
 
 export type ServerStringData = ChatMessageFromServer | BaseState;
@@ -214,12 +232,13 @@ export type ServerStringData = ChatMessageFromServer | BaseState;
 type Client = {
   id: string;
   peerConnection: PeerConnection;
-  reliableChannel: DataChannel | null;
-  reliableChannelBinary: DataChannel | null;
-  unreliableChannelBinary: DataChannel | null;
+  stringChannel: DataChannel | null;
+  ackChannel: DataChannel | null;
+  controlsChannel: DataChannel | null;
+  stateChannel: DataChannel | null;
 };
 
 export type Clients = {
-  map: Record<string, Client>;
+  map: Record<string, Client>; // id, Client
   array: Client[];
 };

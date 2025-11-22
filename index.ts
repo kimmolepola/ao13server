@@ -4,12 +4,13 @@ import { handleNewId, handleRemoveId } from "./service/objects";
 import * as globals from "./globals";
 import { startIntervals } from "./service/intervals";
 import dotenv from "dotenv";
+import * as parameters from "./parameters";
 
 dotenv.config();
 
 const onChannelsChanged = (peerId: string) => {
   const client = globals.clients.map[peerId];
-  if (client && client.reliableChannel?.isOpen()) {
+  if (client && client.stringChannel?.isOpen()) {
     console.log(`Connection open for peer ${peerId}`);
     handleNewId(peerId);
   } else {
