@@ -8,6 +8,7 @@ import {
   onReceiveAck,
 } from "./service/service";
 import * as globals from "./globals";
+import * as utils from "./utils";
 
 // const backendUrl = "http://localhost:5095";
 const serverId = Math.random().toString(36).substring(2, 15);
@@ -170,11 +171,8 @@ const registerHubConnectionListeners = (
 
 // -----------------------------------------------------------------------------------
 
-const createHubConnection = (
-  token: string,
-  onChannelsChanged: (peerId: string) => void
-) => {
-  const hubConnection = api.buildHubConnection(token);
+const createHubConnection = (onChannelsChanged: (peerId: string) => void) => {
+  const hubConnection = api.buildHubConnection();
 
   registerHubConnectionListeners(hubConnection, onChannelsChanged);
 
@@ -195,17 +193,18 @@ const getIceServers = async () => {
 const login = async () => {
   console.log("Server", serverId, "Logging in");
   const { data } = await api.postServerLogin(serverId, password);
-  const loggedInServerInfo: { token: string } = data;
-  api.setToken(loggedInServerInfo.token);
+  const loggedInServerInfo: { accessToken: string; refreshToken: string } =
+    data;
+  api.setAccessToken(loggedInServerInfo.accessToken);
 
   console.log(
     "Server",
     serverId,
     "Logged in, token length",
-    loggedInServerInfo.token?.length
+    loggedInServerInfo.accessToken?.length
   );
 
-  return loggedInServerInfo.token;
+  return loggedInServerInfo;
 };
 
 const handleIceServers = async () => {
@@ -215,10 +214,37 @@ const handleIceServers = async () => {
   }, 1000 * 55);
 };
 
+const loopRefresh = (refreshToken: string, timeoutMs: number) => {
+  setTimeout(async () => {
+    const result = await api.postRefreshToken(refreshToken);
+    api.setAccessToken(result?.accessToken);
+
+    const decodedAccessToken = utils.decodeJWT(result?.accessToken);
+    const exp = decodedAccessToken?.payload.exp;
+    if (exp) {
+      const nextTimeoutMs = exp - new Date().getTime() - 1000 * 10;
+      loopRefresh(result.refreshToken, nextTimeoutMs);
+    }
+  }, timeoutMs);
+};
+
+const handleTokenRefresh = async (loggedInServerInfo: {
+  accessToken: string;
+  refreshToken: string;
+}) => {
+  const decodedAccessToken = utils.decodeJWT(loggedInServerInfo.accessToken);
+  const exp = decodedAccessToken?.payload.exp;
+  if (exp) {
+    const nextTimeoutMs = exp - new Date().getTime() - 1000 * 10;
+    loopRefresh(loggedInServerInfo.refreshToken, nextTimeoutMs);
+  }
+};
+
 export const startConnection = async (
   onChannelsChanged: (peerId: string) => void
 ) => {
-  const token = await login();
+  const loggedInServerInfo = await login();
   await handleIceServers();
-  createHubConnection(token, onChannelsChanged);
+  createHubConnection(onChannelsChanged);
+  handleTokenRefresh(loggedInServerInfo);
 };

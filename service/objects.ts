@@ -91,7 +91,7 @@ export const savePlayerData = async () => {
       }
       return acc;
     }, []) || [];
-  api.saveGameState(data);
+  api.postSaveGameState(data);
 };
 
 export const handleNewId = async (newId: string) => {
