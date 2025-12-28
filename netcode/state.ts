@@ -1,7 +1,7 @@
 import * as globals from "../globals";
 import * as types from "../types";
 import * as parameters from "../parameters";
-import { encodeAxisValue, encodeQuaternionWithOnlyZRotation } from "../utils";
+import { encodeAxisValue, encodeRotationZ } from "../utils";
 import { sendUnreliableBinary } from "../service/channels";
 
 const sequenceNumberBytes = 1;
@@ -152,7 +152,8 @@ export const gatherStateData = (
   const x = encodeAxisValue(o.mesh.position.x);
   const y = encodeAxisValue(o.mesh.position.y);
   const z = o.positionZ;
-  const angleZ = encodeQuaternionWithOnlyZRotation(o.mesh.quaternion);
+  // const angleZ = encodeQuaternionWithOnlyZRotation(o.mesh.quaternion);
+  const rotationZ = encodeRotationZ(o.mesh.rotation.z);
   const ____ctrlsUp = o.controlsOverChannelsUp;
   const __ctrlsDown = o.controlsOverChannelsDown;
   const __ctrlsLeft = o.controlsOverChannelsLeft;
@@ -174,7 +175,7 @@ export const gatherStateData = (
   const xBytes = getUint8Bytes(x);
   const yBytes = getUint8Bytes(y);
   const zBytes = getUint8Bytes(z);
-  const angleZBytes = getUint8Bytes(angleZ);
+  const rotationZBytes = getUint8Bytes(rotationZ);
 
   let ____indexHasChanged = true;
   let _controlsHasChanged = true;
@@ -186,7 +187,7 @@ export const gatherStateData = (
   let xDifferenceSignificance = 4;
   let yDifferenceSignificance = 4;
   let zDifferenceSignificance = 2;
-  let angleZDifferenceSignificance = 2;
+  let rotationZDifferenceSignificance = 2;
   let providedBytesForPositionAndAngleHasChanged = true;
 
   const stateToCompareTo = getStateToCompareTo();
@@ -201,17 +202,17 @@ export const gatherStateData = (
     yDifferenceSignificance = getDifferenceSignificance(yBytes, oYBytes);
     const oZBytes = getUint8Bytes(oState.z);
     zDifferenceSignificance = getDifferenceSignificance(zBytes, oZBytes);
-    const oAngleZBytes = getUint8Bytes(oState.angleZ);
-    angleZDifferenceSignificance = getDifferenceSignificance(
-      angleZBytes,
-      oAngleZBytes
+    const oRotationZBytes = getUint8Bytes(oState.rotationZ);
+    rotationZDifferenceSignificance = getDifferenceSignificance(
+      rotationZBytes,
+      oRotationZBytes
     );
   }
 
   xDifferenceSignificance === 0 && (________xHasChanged = false);
   yDifferenceSignificance === 0 && (________yHasChanged = false);
   zDifferenceSignificance === 0 && (________zHasChanged = false);
-  angleZDifferenceSignificance === 0 && (___angleZHasChanged = false);
+  rotationZDifferenceSignificance === 0 && (___angleZHasChanged = false);
 
   let providedBytesForPositionAndAngle = 0b00000000;
 
@@ -231,11 +232,11 @@ export const gatherStateData = (
     providedBytesForPositionAndAngle |= 0b00000100; // bit 3
   if (zDifferenceSignificance === 2)
     providedBytesForPositionAndAngle |= 0b00010000; // bit 5
-  if (angleZDifferenceSignificance === 2)
+  if (rotationZDifferenceSignificance === 2)
     providedBytesForPositionAndAngle |= 0b00100000; // bit 6
 
   const a = providedBytesForPositionAndAngle;
-  const b = oState?.providedBytesForPositionAndAngle;
+  const b = oState?.providedBytesForPositionAndRotation;
   a === b && (providedBytesForPositionAndAngleHasChanged = false);
 
   let providedValues1to8 = 0b00000000;
@@ -275,7 +276,7 @@ export const gatherStateData = (
   insertChangedBytes(xDifferenceSignificance, xBytes);
   insertChangedBytes(yDifferenceSignificance, yBytes);
   insertChangedBytes(zDifferenceSignificance, zBytes);
-  insertChangedBytes(angleZDifferenceSignificance, angleZBytes);
+  insertChangedBytes(rotationZDifferenceSignificance, rotationZBytes);
 
   // local offset max total 17 bytes
   // if (localOffset > types.unreliableStateSingleObjectMaxBytes) {
@@ -294,8 +295,8 @@ export const gatherStateData = (
       x,
       y,
       z,
-      angleZ,
-      providedBytesForPositionAndAngle,
+      rotationZ,
+      providedBytesForPositionAndRotation: providedBytesForPositionAndAngle,
     };
   }
 };

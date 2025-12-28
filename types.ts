@@ -25,11 +25,11 @@ export type RecentStates = {
             idOverNetwork: number;
             controls: number;
             health: number;
-            providedBytesForPositionAndAngle: number;
+            providedBytesForPositionAndRotation: number;
             x: number;
             y: number;
             z: number;
-            angleZ: number;
+            rotationZ: number;
           }
         | undefined;
     };
@@ -73,10 +73,6 @@ export interface SharedGameObject extends GameObject {
   rotationSpeed: number;
   verticalSpeed: number;
   shotDelay: number;
-  previousSend: {
-    quaternionZ: number;
-    quaternionW: number;
-  };
   positionZ: number;
 }
 

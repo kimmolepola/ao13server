@@ -31,7 +31,8 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
       const timeToLive = 1500;
       const collisions = {};
       mesh?.position.copy(gameEvent.data.mesh.position);
-      mesh?.quaternion.copy(gameEvent.data.mesh.quaternion);
+      // mesh?.quaternion.copy(gameEvent.data.mesh.quaternion);
+      mesh?.rotation.copy(gameEvent.data.mesh.rotation);
       mesh?.translateY(5000);
       globals.localGameObjects.push({
         id,

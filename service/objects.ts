@@ -74,10 +74,6 @@ const addObject = async (id: string) => {
     shotDelay: 0,
     collisions: {},
     health: 100,
-    previousSend: {
-      quaternionZ: 0,
-      quaternionW: 0,
-    },
     positionZ: 1000,
   };
   globals.sharedGameObjects.push(gameObject);

@@ -1,4 +1,3 @@
-import THREE from "three";
 import * as parameters from "./parameters";
 
 export const encodeAxisValue = (axisValue: number) =>
@@ -12,12 +11,10 @@ const wrapToPi = (angle: number) => {
   return a;
 };
 
-export const quaternionWithOnlyZRotationToAngle = (
-  quaternion: THREE.Quaternion
-) => {
-  const angle = 2 * Math.atan2(quaternion.z, quaternion.w); // assuming only Z rotation
-  return wrapToPi(angle);
-};
+// const quaternionWithOnlyZRotationToAngle = (quaternion: THREE.Quaternion) => {
+//   const angle = 2 * Math.atan2(quaternion.z, quaternion.w); // assuming only Z rotation
+//   return wrapToPi(angle);
+// };
 
 const min = -Math.PI;
 const max = Math.PI;
@@ -27,11 +24,16 @@ const encodeAngle = (angle: number) => {
   // decode angle: encoded / rangeMax * (max - min) + min;
 };
 
-export const encodeQuaternionWithOnlyZRotation = (
-  quaternion: THREE.Quaternion
-) => {
-  const angle = quaternionWithOnlyZRotationToAngle(quaternion);
-  return encodeAngle(angle);
+// export const encodeQuaternionWithOnlyZRotation = (
+//   quaternion: THREE.Quaternion
+// ) => {
+//   const angle = quaternionWithOnlyZRotationToAngle(quaternion);
+//   return encodeAngle(angle);
+// };
+
+export const encodeRotationZ = (angle: number) => {
+  const wrapped = wrapToPi(angle);
+  return encodeAngle(wrapped);
 };
 
 export function decodeJWT(token: string) {
