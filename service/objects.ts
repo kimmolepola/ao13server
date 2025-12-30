@@ -72,7 +72,6 @@ const addObject = async (id: string) => {
     verticalSpeed: 0,
     mesh,
     shotDelay: 0,
-    collisions: {},
     health: 100,
     positionZ: 1000,
   };

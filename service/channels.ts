@@ -36,26 +36,16 @@ export const sendReliableString = (
   }
 };
 
-export const sendReliableBinary = (data: types.ReliableStateBinary) => {
-  globals.clients.array.forEach((x) => {
-    try {
-      if (x.controlsChannel?.isOpen()) {
-        x.controlsChannel.sendMessageBinary(data);
-      }
-    } catch (error) {
-      console.error("Error sending binary data reliable:", error, data);
-    }
-  });
-};
-
 export const sendUnreliableBinary = (data: types.UnreliableStateBinary) => {
-  globals.clients.array.forEach((x) => {
+  const clientsArray = globals.clients.array;
+  for (let i = 0; i < clientsArray.length; i++) {
+    const stateChannel = clientsArray[i].stateChannel;
     try {
-      if (x.stateChannel?.isOpen()) {
-        x.stateChannel.sendMessageBinary(data);
+      if (stateChannel?.isOpen()) {
+        stateChannel.sendMessageBinary(data);
       }
     } catch (error) {
       console.error("Error sending binary data unreliable:", error, data);
     }
-  });
+  }
 };

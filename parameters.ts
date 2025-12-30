@@ -1,8 +1,9 @@
+export const collisionMaxDistance = 3700;
+export const collisionMaxDistanceLocalObject = 1700;
 export const maxSharedObjects = 256;
 export const savePlayerDataInterval = 100000;
-export const interpolationAlpha = 0.025;
 export const chatMessageTimeToLive = 60000;
-export const shotDelay = 50;
+export const shotDelay = 100;
 export const tickRate = 1000 / 60; // FPS
 // netcode
 export const unreliableStateInterval = 1000 / 20; // FPS

@@ -19,15 +19,15 @@ const scoreTimeInteval = 9875;
 
 let nextSendTime = Date.now();
 let nextScoreTime = Date.now();
+const localObjectsRemoveIndexes: number[] = [];
 
 const handleLocalObjects = (
   delta: number,
   gameEventHandler: types.GameEventHandler
 ) => {
-  const localObjectsRemoveIndexes = [];
   for (let i = globals.localGameObjects.length - 1; i > -1; i--) {
     const o = globals.localGameObjects[i];
-    if (o && o.mesh) {
+    if (o) {
       const remove = handleLocalObject(delta, o);
       remove && localObjectsRemoveIndexes.push(i);
     }
@@ -52,7 +52,7 @@ const handleObjects = (
     const o = globals.sharedGameObjects[i];
     if (o) {
       checkHealth(o, gameEventHandler);
-      detectCollision(o, time, gameEventHandler);
+      detectCollision(o, gameEventHandler);
       handleMovement(delta, o);
       handleShot(delta, o, gameEventHandler);
       // mock ->

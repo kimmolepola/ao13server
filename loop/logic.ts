@@ -1,104 +1,105 @@
-import * as THREE from "three";
 import * as types from "../types";
 import * as parameters from "../parameters";
 import * as globals from "../globals";
 
-const boxA = new THREE.Box3();
-const boxB = new THREE.Box3();
+const isColliding = (
+  x: number,
+  y: number,
+  z: number,
+  otherObject: types.GameObject,
+  maxDistance: number
+) => {
+  const dx = x - otherObject.mesh.position.x;
+  const dy = y - otherObject.mesh.position.y;
+  const dz = z - otherObject.positionZ;
+
+  const distSq = dx * dx + dy * dy + dz * dz;
+  const maxDistSq = maxDistance * maxDistance;
+
+  return distSq < maxDistSq;
+};
 
 export const detectCollision = (
-  sharedGameObject: types.SharedGameObject,
-  time: number,
+  gameObject: types.SharedGameObject,
   gameEventHandler: types.GameEventHandler
 ) => {
-  const o1 = sharedGameObject;
-  const collisions: types.GameObject[] = [];
-  boxA.setFromObject(o1.mesh);
+  const x = gameObject.mesh.position.x;
+  const y = gameObject.mesh.position.y;
+  const z = gameObject.positionZ;
 
   for (let i = globals.localGameObjects.length - 1; i > -1; i--) {
-    const o2 = globals.localGameObjects[i];
-    boxB.setFromObject(o2.mesh);
-    boxA.intersectsBox(boxB) && collisions.push(o2);
-  }
-
-  for (let i = globals.sharedGameObjects.length - 1; i > -1; i--) {
-    const o2 = globals.sharedGameObjects[i];
-    if (o1.id !== o2.id) {
-      // get collision info from the other object
-      // if it has already calculated collision between it and this object
-      const collisionInfo = o2.collisions[o1.id];
-      if (collisionInfo?.time === time) {
-        collisionInfo.collision && collisions.push(o2);
-      } else {
-        // if no collision info from the other object
-        // let's calculate if there is a collision
-        boxB.setFromObject(o2.mesh);
-        const collision = boxA.intersectsBox(boxB);
-        collision && collisions.push(o2);
-
-        // let's add the result to this object's collision info
-        // so that the other object can use it and we will not calculate it twice
-        sharedGameObject.collisions[o2.id] = { time, collision };
-      }
+    const localGameObject = globals.localGameObjects[i];
+    if (
+      isColliding(
+        x,
+        y,
+        z,
+        localGameObject,
+        parameters.collisionMaxDistanceLocalObject
+      )
+    ) {
+      gameEventHandler({
+        type: types.EventType.CollisionLocalObject,
+        data: [gameObject, localGameObject],
+      });
     }
   }
 
-  // let's handle the possible collisions between this and other objects
-  collisions.length &&
-    gameEventHandler({
-      type: types.EventType.Collision,
-      data: { object: sharedGameObject, otherObjects: collisions },
-    });
+  for (let i = globals.sharedGameObjects.length - 1; i > -1; i--) {
+    const sharedGameObject = globals.sharedGameObjects[i];
+    if (
+      sharedGameObject !== gameObject &&
+      isColliding(x, y, z, sharedGameObject, parameters.collisionMaxDistance)
+    ) {
+      gameEventHandler({
+        type: types.EventType.Collision,
+        data: [gameObject, sharedGameObject],
+      });
+    }
+  }
 };
 
 export const checkHealth = (
-  remoteGameObject: types.SharedGameObject,
+  gameObject: types.SharedGameObject,
   commonGameEventHandler: types.GameEventHandler
 ) => {
-  if (remoteGameObject.health <= 0) {
+  if (gameObject.health <= 0) {
     commonGameEventHandler({
       type: types.EventType.HealthZero,
-      data: remoteGameObject,
+      data: gameObject,
     });
   }
 };
 
 export const refreshControlValues = (gameObject: types.SharedGameObject) => {
   const o = gameObject;
-  o.controlsOverChannelsUp -= parameters.unreliableStateInterval;
-  o.controlsOverChannelsDown -= parameters.unreliableStateInterval;
-  o.controlsOverChannelsLeft -= parameters.unreliableStateInterval;
-  o.controlsOverChannelsRight -= parameters.unreliableStateInterval;
-  o.controlsOverChannelsSpace -= parameters.unreliableStateInterval;
-  o.controlsOverChannelsD -= parameters.unreliableStateInterval;
-  o.controlsOverChannelsF -= parameters.unreliableStateInterval;
-
-  o.controlsOverChannelsUp < 0 && (o.controlsOverChannelsUp = 0);
-  o.controlsOverChannelsDown < 0 && (o.controlsOverChannelsDown = 0);
-  o.controlsOverChannelsLeft < 0 && (o.controlsOverChannelsLeft = 0);
-  o.controlsOverChannelsRight < 0 && (o.controlsOverChannelsRight = 0);
-  o.controlsOverChannelsSpace < 0 && (o.controlsOverChannelsSpace = 0);
-  o.controlsOverChannelsD < 0 && (o.controlsOverChannelsD = 0);
-  o.controlsOverChannelsF < 0 && (o.controlsOverChannelsF = 0);
+  const intrvl = parameters.unreliableStateInterval;
+  o.controlsOverChannelsUp -= Math.min(intrvl, o.controlsOverChannelsUp);
+  o.controlsOverChannelsDown -= Math.min(intrvl, o.controlsOverChannelsDown);
+  o.controlsOverChannelsLeft -= Math.min(intrvl, o.controlsOverChannelsLeft);
+  o.controlsOverChannelsRight -= Math.min(intrvl, o.controlsOverChannelsRight);
+  o.controlsOverChannelsSpace -= Math.min(intrvl, o.controlsOverChannelsSpace);
+  o.controlsOverChannelsD -= Math.min(intrvl, o.controlsOverChannelsD);
+  o.controlsOverChannelsF -= Math.min(intrvl, o.controlsOverChannelsF);
 };
 
 export const handleShot = (
   delta: number,
   gameObject: types.SharedGameObject,
-  commonGameEventHandler: types.GameEventHandler
+  gameEventHandler: types.GameEventHandler
 ) => {
   const o = gameObject;
   if (o.controlsSpace) {
-    const timeQuantity = o.controlsSpace > delta ? delta : o.controlsSpace;
+    const timeQuantity = Math.min(delta, o.controlsSpace);
     o.controlsSpace -= timeQuantity;
 
     //shooting
-    if (o.shotDelay - timeQuantity <= 0) {
+    if (o.shotDelay <= timeQuantity) {
       // shoot
       o.shotDelay += parameters.shotDelay;
-      commonGameEventHandler({
+      gameEventHandler({
         type: types.EventType.Shot,
-        data: { mesh: o.mesh, speed: o.speed },
+        data: gameObject,
       });
     }
   }
@@ -121,12 +122,12 @@ export const handleMovement = (
   gameObject: types.SharedGameObject
 ) => {
   const o = gameObject;
-  const forceUp = o.controlsUp > delta ? delta : o.controlsUp;
-  const forceDown = o.controlsDown > delta ? delta : o.controlsDown;
-  const forceLeft = o.controlsLeft > delta ? delta : o.controlsLeft;
-  const forceRight = o.controlsRight > delta ? delta : o.controlsRight;
-  const forceD = o.controlsD > delta ? delta : o.controlsD;
-  const forceF = o.controlsF > delta ? delta : o.controlsF;
+  const forceUp = Math.min(delta, o.controlsUp);
+  const forceDown = Math.min(delta, o.controlsDown);
+  const forceLeft = Math.min(delta, o.controlsLeft);
+  const forceRight = Math.min(delta, o.controlsRight);
+  const forceD = Math.min(delta, o.controlsD);
+  const forceF = Math.min(delta, o.controlsF);
   o.controlsUp -= forceUp;
   o.controlsDown -= forceDown;
   o.controlsLeft -= forceLeft;
@@ -158,16 +159,18 @@ export const handleMovement = (
   o.mesh.rotateZ(o.rotationSpeed * parameters.rotationFactor * delta);
   o.mesh.translateY(o.speed * parameters.speedFactor * delta);
   o.positionZ += o.verticalSpeed * parameters.verticalSpeedFactor * delta;
-  if (!forceLeft && !forceRight && o.rotationSpeed) {
-    if (Math.abs(o.rotationSpeed) < 0.00001) {
-      o.rotationSpeed = 0;
+  if (!forceLeft && !forceRight) {
+    const rs = o.rotationSpeed;
+    if (rs !== 0) {
+      const decayed = rs * 0.99;
+      o.rotationSpeed = Math.abs(decayed) < 0.00001 ? 0 : decayed;
     }
-    o.rotationSpeed *= 0.99;
   }
-  if (!forceD && !forceF && o.verticalSpeed) {
-    if (Math.abs(o.verticalSpeed) < 0.00001) {
-      o.verticalSpeed = 0;
+  if (!forceD && !forceF) {
+    const vs = o.verticalSpeed;
+    if (vs !== 0) {
+      const decayed = vs * 0.99;
+      o.verticalSpeed = Math.abs(decayed) < 0.00001 ? 0 : decayed;
     }
-    o.verticalSpeed *= 0.9;
   }
 };

@@ -41,7 +41,7 @@ export interface GameObject {
   type: GameObjectType;
   speed: number;
   mesh: THREE.Mesh<THREE.BoxGeometry>;
-  collisions: { [gameObjectId: string]: { time: number; collision: boolean } };
+  positionZ: number;
 }
 
 export interface LocalGameObject extends GameObject {
@@ -73,12 +73,12 @@ export interface SharedGameObject extends GameObject {
   rotationSpeed: number;
   verticalSpeed: number;
   shotDelay: number;
-  positionZ: number;
 }
 
 export enum EventType {
   HealthZero,
   Collision,
+  CollisionLocalObject,
   Shot,
   RemoveLocalObjectIndexes,
 }
@@ -90,14 +90,15 @@ export type GameEvent =
     }
   | {
       type: EventType.Collision;
-      data: {
-        object: SharedGameObject;
-        otherObjects: GameObject[];
-      };
+      data: [currentObject: SharedGameObject, otherObject: SharedGameObject];
+    }
+  | {
+      type: EventType.CollisionLocalObject;
+      data: [currentObject: SharedGameObject, otherObject: LocalGameObject];
     }
   | {
       type: EventType.Shot;
-      data: { mesh: THREE.Mesh<THREE.BoxGeometry>; speed: number };
+      data: SharedGameObject;
     }
   | { type: EventType.RemoveLocalObjectIndexes; data: number[] };
 

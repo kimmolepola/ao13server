@@ -27,28 +27,32 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
       const type = types.GameObjectType.Bullet as types.GameObjectType.Bullet;
       const geometry = new THREE.BoxGeometry(600, 600, 1);
       const mesh = new THREE.Mesh(geometry);
-      mesh?.geometry.computeBoundingBox();
+      mesh.geometry.computeBoundingBox();
       const timeToLive = 1500;
-      const collisions = {};
-      mesh?.position.copy(gameEvent.data.mesh.position);
+      mesh.position.copy(gameEvent.data.mesh.position);
       // mesh?.quaternion.copy(gameEvent.data.mesh.quaternion);
-      mesh?.rotation.copy(gameEvent.data.mesh.rotation);
-      mesh?.translateY(5000);
+      mesh.rotation.copy(gameEvent.data.mesh.rotation);
+      mesh.translateY(5000);
       globals.localGameObjects.push({
         id,
         type,
         speed,
         mesh,
+        positionZ: gameEvent.data.positionZ,
         timeToLive,
-        collisions,
       });
       break;
     }
     case types.EventType.Collision: {
-      gameEvent.data.object.health -= 1;
-      if (gameEvent.data.object.health < 0) {
-        gameEvent.data.object.health = 0;
-      }
+      const obj = gameEvent.data[0];
+      obj.health -= Math.min(obj.health, 1);
+      break;
+    }
+    case types.EventType.CollisionLocalObject: {
+      const obj = gameEvent.data[0];
+      obj.health -= Math.min(obj.health, 1);
+      // const otherObj = gameEvent.data[1];
+      // otherObj.timeToLive = 0;
       break;
     }
 

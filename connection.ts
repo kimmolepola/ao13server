@@ -1,6 +1,5 @@
 import nodeDataChannel, { IceServer, DescriptionType } from "node-datachannel";
 import { HubConnection } from "@microsoft/signalr";
-import * as types from "./types";
 import * as api from "./api";
 import {
   onReceiveString,
@@ -88,12 +87,6 @@ const createPeerConnection = (
     const client = globals.clients.map[peerId];
     if (client && label === "string-reliable") {
       client.stringChannel = dc;
-    }
-    if (client && label === "ack-reliable") {
-      client.controlsChannel = dc;
-    }
-    if (client && label === "controls-unreliable") {
-      client.controlsChannel = dc;
     }
     if (client && label === "state-unreliable") {
       client.stateChannel = dc;
