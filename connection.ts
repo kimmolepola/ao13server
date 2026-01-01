@@ -117,10 +117,25 @@ const createPeerConnection = (
   });
 };
 
+let lastServerHeartbeat = Date.now();
 const registerHubConnectionListeners = (
   hubConnection: HubConnection,
   onChannelsChanged: (peerId: string) => void
 ) => {
+  hubConnection.on("heartbeat", (ts) => {
+    lastServerHeartbeat = Date.now();
+  });
+
+  hubConnection.onclose((err) => {
+    console.log("Connection closed:", err);
+  });
+  hubConnection.onreconnecting((err) => {
+    console.log("Reconnecting:", err);
+  });
+  hubConnection.onreconnected((id) => {
+    console.log("Reconnected:", id);
+  });
+
   hubConnection.on("connected", () => {
     console.log("Connected to main server");
   });
@@ -172,6 +187,17 @@ const createHubConnection = (onChannelsChanged: (peerId: string) => void) => {
   hubConnection.start().catch((err) => {
     console.error(err);
   });
+
+  setInterval(() => {
+    hubConnection.invoke("Heartbeat").catch(() => {});
+  }, 55000);
+
+  // setInterval(() => {
+  //   if (Date.now() - lastServerHeartbeat > 15000) {
+  //     console.log("Server heartbeat lost, reconnecting...");
+  //     hubConnection.stop().then(() => hubConnection.start());
+  //   }
+  // }, 2000);
 };
 
 const getIceServers = async () => {

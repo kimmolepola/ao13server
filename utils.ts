@@ -1,8 +1,8 @@
 import * as parameters from "./parameters";
 
 export const encodeAxisValue = (axisValue: number) =>
-  axisValue * parameters.positionToNetworkFactor +
-  parameters.positionToNetworkAddition;
+  (axisValue + parameters.positionToNetworkAddition) *
+  parameters.positionToNetworkFactor;
 
 const wrapToPi = (angle: number) => {
   let a = angle % (2 * Math.PI);
