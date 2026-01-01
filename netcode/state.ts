@@ -142,6 +142,8 @@ export const handleNewSequence = () => {
   view.setUint8(0, sequenceNumber);
 };
 
+let prevValue = 0;
+let prevValue2 = 0;
 export const gatherStateData = (
   index: number,
   gameObject: types.SharedGameObject
@@ -174,6 +176,7 @@ export const gatherStateData = (
   const healthByte = o.health & 0xff;
   const xBytes = getUint8Bytes(x);
   const yBytes = getUint8Bytes(y);
+
   const zBytes = getUint8Bytes(z);
   const rotationZBytes = getUint8Bytes(rotationZ);
 
@@ -275,6 +278,11 @@ export const gatherStateData = (
 
   insertChangedBytes(xDifferenceSignificance, xBytes);
   insertChangedBytes(yDifferenceSignificance, yBytes);
+  // if (y !== prevValue || o.mesh.position.y !== prevValue2) {
+  //   prevValue = y;
+  //   prevValue2 = o.mesh.position.y;
+  //   console.log("--y:", Math.floor(y), o.mesh.position.y.toFixed(2));
+  // }
   insertChangedBytes(zDifferenceSignificance, zBytes);
   insertChangedBytes(rotationZDifferenceSignificance, rotationZBytes);
 

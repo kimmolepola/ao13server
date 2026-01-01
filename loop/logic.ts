@@ -117,60 +117,83 @@ export const handleLocalObject = (
   return o.timeToLive < 0;
 };
 
-export const handleMovement = (
-  delta: number,
-  gameObject: types.SharedGameObject
-) => {
-  const o = gameObject;
-  const forceUp = Math.min(delta, o.controlsUp);
-  const forceDown = Math.min(delta, o.controlsDown);
-  const forceLeft = Math.min(delta, o.controlsLeft);
-  const forceRight = Math.min(delta, o.controlsRight);
-  const forceD = Math.min(delta, o.controlsD);
-  const forceF = Math.min(delta, o.controlsF);
-  o.controlsUp -= forceUp;
-  o.controlsDown -= forceDown;
-  o.controlsLeft -= forceLeft;
-  o.controlsRight -= forceRight;
-  o.controlsF -= forceF;
-  o.controlsD -= forceD;
-  o.speed += forceUp * parameters.forceUpToSpeedFactor;
-  o.speed -= forceDown * parameters.forceDownToSpeedFactor;
-  o.rotationSpeed += forceLeft * parameters.forceLeftOrRightToRotationFactor;
-  o.rotationSpeed -= forceRight * parameters.forceLeftOrRightToRotationFactor;
-  o.verticalSpeed -= forceD * parameters.forceAscOrDescToVerticalSpeedFactor;
-  o.verticalSpeed += forceF * parameters.forceAscOrDescToVerticalSpeedFactor;
-  if (o.speed > parameters.maxSpeed) {
-    o.speed = parameters.maxSpeed;
+export const handleMovement = (delta: number, o: types.SharedGameObject) => {
+  const p = parameters;
+
+  //
+  // 1. INPUT → VELOCITY
+  //
+  const up = Math.min(o.controlsUp, delta);
+  const down = Math.min(o.controlsDown, delta);
+  const left = Math.min(o.controlsLeft, delta);
+  const right = Math.min(o.controlsRight, delta);
+  const d = Math.min(o.controlsD, delta);
+  const f = Math.min(o.controlsF, delta);
+
+  o.controlsUp -= up;
+  o.controlsDown -= down;
+  o.controlsLeft -= left;
+  o.controlsRight -= right;
+  o.controlsD -= d;
+  o.controlsF -= f;
+
+  o.speed += up * p.forceUpToSpeedFactor;
+  o.speed -= down * p.forceDownToSpeedFactor;
+
+  o.rotationSpeed += left * p.forceLeftOrRightToRotationFactor;
+  o.rotationSpeed -= right * p.forceLeftOrRightToRotationFactor;
+
+  o.verticalSpeed -= d * p.forceAscOrDescToVerticalSpeedFactor;
+  o.verticalSpeed += f * p.forceAscOrDescToVerticalSpeedFactor;
+
+  //
+  // 2. CLAMP VELOCITIES
+  //
+  o.speed = Math.min(Math.max(o.speed, p.minSpeed), p.maxSpeed);
+  o.rotationSpeed = Math.min(
+    Math.max(o.rotationSpeed, -p.maxRotationSpeedAbsolute),
+    p.maxRotationSpeedAbsolute
+  );
+  o.verticalSpeed = Math.min(
+    Math.max(o.verticalSpeed, -p.maxVerticalSpeedAbsolute),
+    p.maxVerticalSpeedAbsolute
+  );
+
+  //
+  // 3. APPLY DAMPING (time‑based exponential)
+  //
+  if (!left && !right) {
+    const decay = Math.exp(-p.rotationDecay * delta);
+    o.rotationSpeed *= decay;
+    if (Math.abs(o.rotationSpeed) < 0.00001) o.rotationSpeed = 0;
   }
-  if (o.speed < parameters.minSpeed) {
-    o.speed = parameters.minSpeed;
+
+  if (!d && !f) {
+    const decay = Math.exp(-p.verticalDecay * delta);
+    o.verticalSpeed *= decay;
+    if (Math.abs(o.verticalSpeed) < 0.00001) o.verticalSpeed = 0;
   }
-  if (o.rotationSpeed > parameters.maxRotationSpeedAbsolute) {
-    o.rotationSpeed = parameters.maxRotationSpeedAbsolute;
-  } else if (o.rotationSpeed < -parameters.maxRotationSpeedAbsolute) {
-    o.rotationSpeed = -parameters.maxRotationSpeedAbsolute;
+
+  //
+  // 4. INTEGRATE VELOCITIES → TRANSFORM
+  //
+  const angle = o.rotationSpeed * p.rotationFactor * delta;
+  const distance = o.speed * p.speedFactor * delta;
+  const distanceZ = o.verticalSpeed * p.verticalSpeedFactor * delta;
+  o.mesh.rotateZ(angle);
+  o.mesh.translateY(distance);
+  o.positionZ += distanceZ;
+
+  if (o.mesh.position.x > parameters.maxWorldCoordinateValue) {
+    o.mesh.position.x = parameters.maxWorldCoordinateValue;
   }
-  if (o.verticalSpeed > parameters.maxVerticalSpeedAbsolute) {
-    o.verticalSpeed = parameters.maxVerticalSpeedAbsolute;
-  } else if (o.verticalSpeed < -parameters.maxVerticalSpeedAbsolute) {
-    o.verticalSpeed = -parameters.maxVerticalSpeedAbsolute;
+  if (o.mesh.position.x < parameters.minWorldCoordinateValue) {
+    o.mesh.position.x = parameters.minWorldCoordinateValue;
   }
-  o.mesh.rotateZ(o.rotationSpeed * parameters.rotationFactor * delta);
-  o.mesh.translateY(o.speed * parameters.speedFactor * delta);
-  o.positionZ += o.verticalSpeed * parameters.verticalSpeedFactor * delta;
-  if (!forceLeft && !forceRight) {
-    const rs = o.rotationSpeed;
-    if (rs !== 0) {
-      const decayed = rs * 0.99;
-      o.rotationSpeed = Math.abs(decayed) < 0.00001 ? 0 : decayed;
-    }
+  if (o.mesh.position.y > parameters.maxWorldCoordinateValue) {
+    o.mesh.position.y = parameters.maxWorldCoordinateValue;
   }
-  if (!forceD && !forceF) {
-    const vs = o.verticalSpeed;
-    if (vs !== 0) {
-      const decayed = vs * 0.99;
-      o.verticalSpeed = Math.abs(decayed) < 0.00001 ? 0 : decayed;
-    }
+  if (o.mesh.position.y < parameters.minWorldCoordinateValue) {
+    o.mesh.position.y = parameters.minWorldCoordinateValue;
   }
 };
