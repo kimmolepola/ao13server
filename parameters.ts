@@ -1,5 +1,5 @@
-export const collisionMaxDistance = 3700;
-export const collisionMaxDistanceLocalObject = 1700;
+export const collisionMaxDistance = 0.7;
+export const collisionMaxDistanceLocalObject = 0.1;
 export const maxSharedObjects = 256;
 export const savePlayerDataInterval = 100000;
 export const chatMessageTimeToLive = 60000;
