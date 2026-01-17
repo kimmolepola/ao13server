@@ -6,7 +6,7 @@ const isColliding = (
   x: number,
   y: number,
   z: number,
-  otherObject: types.GameObject,
+  otherObject: types.LocalGameObject | types.SharedGameObject,
   maxDistance: number
 ) => {
   const dx = x - otherObject.mesh.position.x;

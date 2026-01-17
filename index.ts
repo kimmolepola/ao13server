@@ -4,7 +4,7 @@ import { handleNewId, handleRemoveId } from "./service/objects";
 import * as globals from "./globals";
 import { startIntervals } from "./service/intervals";
 import dotenv from "dotenv";
-import * as parameters from "./parameters";
+import { setupStaticObjects } from "./setup";
 
 dotenv.config();
 
@@ -19,6 +19,7 @@ const onChannelsChanged = (peerId: string) => {
   }
 };
 
+setupStaticObjects();
 startConnection(onChannelsChanged);
 startIntervals();
 run();

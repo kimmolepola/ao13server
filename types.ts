@@ -39,23 +39,32 @@ export type RecentStates = {
 export interface GameObject {
   id: string;
   type: GameObjectType;
-  speed: number;
-  mesh: THREE.Mesh<THREE.BoxGeometry>;
-  positionZ: number;
+}
+
+export interface StaticGameObject extends GameObject {
+  x: number;
+  y: number;
+  rotation: number;
 }
 
 export interface LocalGameObject extends GameObject {
   type: GameObjectType.Bullet;
+  mesh: THREE.Mesh<THREE.BoxGeometry>;
   timeToLive: number;
+  speed: number;
+  positionZ: number;
 }
 
 export interface SharedGameObject extends GameObject {
   idOverNetwork: number; // 0-255
+  mesh: THREE.Mesh<THREE.BoxGeometry>;
   health: number;
   type: GameObjectType.Fighter;
   isPlayer: boolean;
   username: string;
   score: number;
+  speed: number;
+  positionZ: number;
   controlsUp: number;
   controlsDown: number;
   controlsLeft: number;
@@ -112,6 +121,7 @@ export type PlayerState = {
 export enum GameObjectType {
   Bullet,
   Fighter,
+  Runway,
 }
 
 export enum ClientStringDataType {
@@ -146,11 +156,12 @@ export type Controls = {
   f: number;
 };
 
-export type BaseStateObject = {
+export type BaseStateSharedObject = {
   id: string;
   isPlayer: boolean;
   username: string;
   score: number;
+  idOverNetwork: number;
 };
 
 // State shape (1 + n * 1-17 bytes)
@@ -214,7 +225,9 @@ export type UnreliableStateBinary = Uint8Array;
 
 export type BaseState = {
   type: ServerStringDataType.BaseState;
-  data: BaseStateObject[];
+  data: {
+    sharedObjects: BaseStateSharedObject[];
+  };
 };
 
 export type Queue = {

@@ -52,7 +52,7 @@ const handleObjects = (
     const o = globals.sharedGameObjects[i];
     if (o) {
       checkHealth(o, gameEventHandler);
-      detectCollision(o, gameEventHandler);
+      // detectCollision(o, gameEventHandler);
       handleMovement(delta, o);
       handleShot(delta, o, gameEventHandler);
       // mock ->
