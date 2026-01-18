@@ -1,5 +1,16 @@
 import * as parameters from "./parameters";
 
+export const pixelsToDistanceUnits = (
+  pixels: number,
+  oneMeterInPixels: number
+) => {
+  const onePixelInMeters = 1 / oneMeterInPixels;
+  const oneMeterInDistanceUnits = 1 / parameters.oneDistanceUnitInMeters;
+  const onePixelInDistanceUnits = onePixelInMeters * oneMeterInDistanceUnits;
+  const distance = pixels * onePixelInDistanceUnits;
+  return distance;
+};
+
 export const encodeAxisValue = (axisValue: number) =>
   (axisValue + parameters.positionToNetworkAddition) *
   parameters.positionToNetworkFactor;

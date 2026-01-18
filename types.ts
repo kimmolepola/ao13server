@@ -42,9 +42,11 @@ export interface GameObject {
 }
 
 export interface StaticGameObject extends GameObject {
-  x: number;
-  y: number;
-  rotation: number;
+  mesh: THREE.Mesh<THREE.PlaneGeometry>;
+  halfWidth: number;
+  halfHeight: number;
+  cosA: number;
+  sinA: number;
 }
 
 export interface LocalGameObject extends GameObject {
@@ -64,6 +66,8 @@ export interface SharedGameObject extends GameObject {
   username: string;
   score: number;
   speed: number;
+  fuel: number;
+  bullets: number;
   positionZ: number;
   controlsUp: number;
   controlsDown: number;
@@ -88,6 +92,7 @@ export enum EventType {
   HealthZero,
   Collision,
   CollisionLocalObject,
+  CollisionStaticObject,
   Shot,
   RemoveLocalObjectIndexes,
 }
@@ -104,6 +109,10 @@ export type GameEvent =
   | {
       type: EventType.CollisionLocalObject;
       data: [currentObject: SharedGameObject, otherObject: LocalGameObject];
+    }
+  | {
+      type: EventType.CollisionStaticObject;
+      data: [currentObject: SharedGameObject, otherObject: StaticGameObject];
     }
   | {
       type: EventType.Shot;
@@ -163,6 +172,17 @@ export type BaseStateSharedObject = {
   score: number;
   idOverNetwork: number;
 };
+
+export type BaseStateStaticObject = {
+  id: string;
+  type: GameObjectType;
+  x: number;
+  y: number;
+  rotation: number;
+};
+
+// ammunition 3 bytes
+// bullets 2 bytes
 
 // State shape (1 + n * 1-17 bytes)
 // [
@@ -227,6 +247,7 @@ export type BaseState = {
   type: ServerStringDataType.BaseState;
   data: {
     sharedObjects: BaseStateSharedObject[];
+    staticObjects: BaseStateStaticObject[];
   };
 };
 

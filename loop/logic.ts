@@ -19,6 +19,32 @@ const isColliding = (
   return distSq < maxDistSq;
 };
 
+const isCollidingPlane = (
+  x: number,
+  y: number,
+  otherObject: types.StaticGameObject
+) => {
+  const cx = otherObject.mesh.position.x;
+  const cy = otherObject.mesh.position.y;
+  const cosA = otherObject.cosA;
+  const sinA = otherObject.sinA;
+  const hx = otherObject.halfWidth;
+  const hy = otherObject.halfHeight;
+
+  // translate into rectangle space
+  const dx = x - cx;
+  const dy = y - cy;
+
+  // rotate by inverse Z rotation
+  const localX = dx * cosA - dy * sinA;
+  const localY = dx * sinA + dy * cosA;
+
+  // AABB check
+  const inside = localX >= -hx && localX <= hx && localY >= -hy && localY <= hy;
+
+  return inside;
+};
+
 export const detectCollision = (
   gameObject: types.SharedGameObject,
   gameEventHandler: types.GameEventHandler
@@ -54,6 +80,16 @@ export const detectCollision = (
       gameEventHandler({
         type: types.EventType.Collision,
         data: [gameObject, sharedGameObject],
+      });
+    }
+  }
+
+  for (let i = globals.staticGameObjects.length - 1; i > -1; i--) {
+    const staticGameObject = globals.staticGameObjects[i];
+    if (isCollidingPlane(x, y, staticGameObject)) {
+      gameEventHandler({
+        type: types.EventType.CollisionStaticObject,
+        data: [gameObject, staticGameObject],
       });
     }
   }
@@ -123,8 +159,8 @@ export const handleMovement = (delta: number, o: types.SharedGameObject) => {
   //
   // 1. INPUT → VELOCITY
   //
-  const up = Math.min(o.controlsUp, delta);
-  const down = Math.min(o.controlsDown, delta);
+  const up = o.fuel ? Math.min(o.controlsUp, delta) : 0;
+  const down = o.fuel ? Math.min(o.controlsDown, delta) : delta;
   const left = Math.min(o.controlsLeft, delta);
   const right = Math.min(o.controlsRight, delta);
   const d = Math.min(o.controlsD, delta);
@@ -196,4 +232,6 @@ export const handleMovement = (delta: number, o: types.SharedGameObject) => {
   if (o.mesh.position.y < parameters.minWorldCoordinateValue) {
     o.mesh.position.y = parameters.minWorldCoordinateValue;
   }
+
+  o.fuel -= Math.min(o.fuel, o.speed * delta * 0.000001);
 };

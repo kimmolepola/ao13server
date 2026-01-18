@@ -12,9 +12,18 @@ export const handleSendBaseState = () => {
       idOverNetwork: x.idOverNetwork,
     }));
 
+  const staticObjects: types.BaseStateStaticObject[] =
+    globals.staticGameObjects.map((x) => ({
+      id: x.id,
+      type: x.type,
+      x: x.mesh.position.x,
+      y: x.mesh.position.y,
+      rotation: x.mesh.rotation.z,
+    }));
+
   const data = {
     sharedObjects,
-    staticObjects: globals.staticGameObjects,
+    staticObjects,
   };
 
   sendReliableString({

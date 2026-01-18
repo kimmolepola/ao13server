@@ -22,25 +22,28 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
       break;
     }
     case types.EventType.Shot: {
-      const id = crypto.randomBytes(12).toString("hex");
-      const speed = gameEvent.data.speed + parameters.bulletSpeed;
-      const type = types.GameObjectType.Bullet as types.GameObjectType.Bullet;
-      const geometry = new THREE.BoxGeometry(600, 600, 1);
-      const mesh = new THREE.Mesh(geometry);
-      mesh.geometry.computeBoundingBox();
-      const timeToLive = 1500;
-      mesh.position.copy(gameEvent.data.mesh.position);
-      // mesh?.quaternion.copy(gameEvent.data.mesh.quaternion);
-      mesh.rotation.copy(gameEvent.data.mesh.rotation);
-      mesh.translateY(5000);
-      globals.localGameObjects.push({
-        id,
-        type,
-        speed,
-        mesh,
-        positionZ: gameEvent.data.positionZ,
-        timeToLive,
-      });
+      if (gameEvent.data.bullets > 0) {
+        const id = crypto.randomBytes(12).toString("hex");
+        const speed = gameEvent.data.speed + parameters.bulletSpeed;
+        const type = types.GameObjectType.Bullet as types.GameObjectType.Bullet;
+        const geometry = new THREE.BoxGeometry(600, 600, 1);
+        const mesh = new THREE.Mesh(geometry);
+        mesh.geometry.computeBoundingBox();
+        const timeToLive = 1500;
+        mesh.position.copy(gameEvent.data.mesh.position);
+        // mesh?.quaternion.copy(gameEvent.data.mesh.quaternion);
+        mesh.rotation.copy(gameEvent.data.mesh.rotation);
+        mesh.translateY(5000);
+        globals.localGameObjects.push({
+          id,
+          type,
+          speed,
+          mesh,
+          positionZ: gameEvent.data.positionZ,
+          timeToLive,
+        });
+        gameEvent.data.bullets -= 1;
+      }
       break;
     }
     case types.EventType.Collision: {
@@ -53,6 +56,15 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
       obj.health -= Math.min(obj.health, 1);
       // const otherObj = gameEvent.data[1];
       // otherObj.timeToLive = 0;
+      break;
+    }
+    case types.EventType.CollisionStaticObject: {
+      const obj = gameEvent.data[0];
+      if (obj.speed === 0) {
+        obj.fuel < 8200 && (obj.fuel += 0.1);
+        obj.fuel > 8200 && (obj.fuel = 8200);
+        obj.bullets < 480 && (obj.bullets += 1);
+      }
       break;
     }
 
