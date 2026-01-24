@@ -68,7 +68,7 @@ const addObject = async (id: string) => {
     controlsOverChannelsD: 0,
     controlsOverChannelsF: 0,
     speed: parameters.initialSpeed,
-    fuel: 8200,
+    fuel: parameters.maxFuelKg,
     bullets: 480,
     rotationSpeed: 0,
     verticalSpeed: 0,

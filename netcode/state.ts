@@ -142,8 +142,41 @@ export const handleNewSequence = () => {
   view.setUint8(0, sequenceNumber);
 };
 
-let prevValue = 0;
-let prevValue2 = 0;
+const ordnanceChannel1 = { byte1: 0, byte2: 0, fitsInOneByte: false };
+const ordnanceChannel2 = { byte1: 0, byte2: 0, fitsInOneByte: false };
+const encodeOrdnance = (
+  objectId: number,
+  objectValue: number,
+  out: { byte1: number; byte2: number; fitsInOneByte: boolean }
+) => {
+  // --- validation (optional but safe) ---
+  if (objectId < 0 || objectId > 7) throw new Error("objectId must be 0-7");
+  if (objectValue < 0 || objectValue > 4095)
+    throw new Error("objectValue must be 0-4095, objectValue: " + objectValue);
+
+  // Check if value fits in 4 bits → 1 byte
+  const fitsInOneByte = objectValue <= 0x0f;
+
+  if (fitsInOneByte) {
+    // id in bits 7–5, flag=0 in bit 4, value in bits 3–0
+    const byte = (objectId << 5) | (0 << 4) | (objectValue & 0x0f);
+    out.byte1 = byte;
+    out.byte2 = 0;
+    out.fitsInOneByte = true;
+  }
+
+  // Otherwise: 2‑byte encoding
+  // byte1: id(3 bits), flag=1, high 4 bits of value
+  const byte1 = (objectId << 5) | (1 << 4) | ((objectValue >> 8) & 0x0f);
+
+  // byte2: low 8 bits of value
+  const byte2 = objectValue & 0xff;
+
+  out.byte1 = byte1;
+  out.byte2 = byte2;
+  out.fitsInOneByte = false;
+};
+
 export const gatherStateData = (
   index: number,
   gameObject: types.SharedGameObject
@@ -174,31 +207,36 @@ export const gatherStateData = (
   _____ctrlsF && (controls |= 0b01000000);
 
   const healthByte = o.health & 0xff;
+  const fuelByte = (o.fuel * parameters.fuelToNetworkRatio) & 0xff;
+  encodeOrdnance(0, o.bullets, ordnanceChannel1);
   const xBytes = getUint8Bytes(x);
   const yBytes = getUint8Bytes(y);
-
   const zBytes = getUint8Bytes(z);
   const rotationZBytes = getUint8Bytes(rotationZ);
 
-  let ____indexHasChanged = true;
-  let _controlsHasChanged = true;
-  let ___healthHasChanged = true;
-  let ________xHasChanged = true;
-  let ________yHasChanged = true;
-  let ________zHasChanged = true;
-  let ___angleZHasChanged = true;
+  let indexHasChanged = true;
+  let controlsHasChanged = true;
+  let healthHasChanged = true;
+  let xHasChanged = true;
+  let yHasChanged = true;
+  let zHasChanged = true;
+  let rotationZHasChanged = true;
   let xDifferenceSignificance = 4;
   let yDifferenceSignificance = 4;
   let zDifferenceSignificance = 2;
   let rotationZDifferenceSignificance = 2;
-  let providedBytesForPositionAndAngleHasChanged = true;
+  let providedBytesForPositionAndRotationHasChanged = true;
+  let ordnanceChannel1HasChanged = true;
+  let ordnanceChannel2HasChanged = true;
+  let providedValues9to16HasChanged = true;
+  let fuelHasChanged = true;
 
   const stateToCompareTo = getStateToCompareTo();
   const oState = stateToCompareTo.state[idOverNetwork];
   if (oState && stateToCompareTo.acknowledged) {
-    index === oState.index && (____indexHasChanged = false);
-    controls === oState.controls && (_controlsHasChanged = false);
-    healthByte === oState.health && (___healthHasChanged = false);
+    index === oState.index && (indexHasChanged = false);
+    controls === oState.controls && (controlsHasChanged = false);
+    healthByte === oState.health && (healthHasChanged = false);
     const oXBytes = getUint8Bytes(oState.x);
     xDifferenceSignificance = getDifferenceSignificance(xBytes, oXBytes);
     const oYBytes = getUint8Bytes(oState.y);
@@ -210,48 +248,65 @@ export const gatherStateData = (
       rotationZBytes,
       oRotationZBytes
     );
+    ordnanceChannel1.byte1 === oState.ordnanceChannel1.byte1 &&
+      ordnanceChannel1.byte2 === oState.ordnanceChannel1.byte2 &&
+      (ordnanceChannel1HasChanged = false);
+    ordnanceChannel2.byte1 === oState.ordnanceChannel2.byte1 &&
+      ordnanceChannel2.byte2 === oState.ordnanceChannel2.byte2 &&
+      (ordnanceChannel2HasChanged = false);
+    fuelByte === oState.fuel && (fuelHasChanged = false);
   }
+  xDifferenceSignificance === 0 && (xHasChanged = false);
+  yDifferenceSignificance === 0 && (yHasChanged = false);
+  zDifferenceSignificance === 0 && (zHasChanged = false);
+  rotationZDifferenceSignificance === 0 && (rotationZHasChanged = false);
+  !indexHasChanged &&
+    !healthHasChanged &&
+    !ordnanceChannel1HasChanged &&
+    !ordnanceChannel2HasChanged &&
+    (providedValues9to16HasChanged = false);
 
-  xDifferenceSignificance === 0 && (________xHasChanged = false);
-  yDifferenceSignificance === 0 && (________yHasChanged = false);
-  zDifferenceSignificance === 0 && (________zHasChanged = false);
-  rotationZDifferenceSignificance === 0 && (___angleZHasChanged = false);
-
-  let providedBytesForPositionAndAngle = 0b00000000;
+  let providedBytesForPositionAndRotation = 0b00000000;
 
   if (xDifferenceSignificance === 4) {
-    providedBytesForPositionAndAngle |= 0b00000011; // bit 1&2
+    providedBytesForPositionAndRotation |= 0b00000011; // bit 1&2
   } else if (xDifferenceSignificance === 3) {
-    providedBytesForPositionAndAngle |= 0b00000010; // bit 2
+    providedBytesForPositionAndRotation |= 0b00000010; // bit 2
   } else if (xDifferenceSignificance === 2) {
-    providedBytesForPositionAndAngle |= 0b00000001; // bit 1
+    providedBytesForPositionAndRotation |= 0b00000001; // bit 1
   }
 
   if (yDifferenceSignificance === 4)
-    providedBytesForPositionAndAngle |= 0b00001100; // bit 3&4
+    providedBytesForPositionAndRotation |= 0b00001100; // bit 3&4
   if (yDifferenceSignificance === 3)
-    providedBytesForPositionAndAngle |= 0b00001000; // bit 4
+    providedBytesForPositionAndRotation |= 0b00001000; // bit 4
   if (yDifferenceSignificance === 2)
-    providedBytesForPositionAndAngle |= 0b00000100; // bit 3
+    providedBytesForPositionAndRotation |= 0b00000100; // bit 3
   if (zDifferenceSignificance === 2)
-    providedBytesForPositionAndAngle |= 0b00010000; // bit 5
+    providedBytesForPositionAndRotation |= 0b00010000; // bit 5
   if (rotationZDifferenceSignificance === 2)
-    providedBytesForPositionAndAngle |= 0b00100000; // bit 6
+    providedBytesForPositionAndRotation |= 0b00100000; // bit 6
 
-  const a = providedBytesForPositionAndAngle;
+  const a = providedBytesForPositionAndRotation;
   const b = oState?.providedBytesForPositionAndRotation;
-  a === b && (providedBytesForPositionAndAngleHasChanged = false);
+  a === b && (providedBytesForPositionAndRotationHasChanged = false);
 
   let providedValues1to8 = 0b00000000;
-  ____indexHasChanged && (providedValues1to8 |= 0b00000001);
-  _controlsHasChanged && (providedValues1to8 |= 0b00000010);
-  ___healthHasChanged && (providedValues1to8 |= 0b00000100);
-  ________xHasChanged && (providedValues1to8 |= 0b00001000);
-  ________yHasChanged && (providedValues1to8 |= 0b00010000);
-  ________zHasChanged && (providedValues1to8 |= 0b00100000);
-  ___angleZHasChanged && (providedValues1to8 |= 0b01000000);
-  providedBytesForPositionAndAngleHasChanged &&
-    (providedValues1to8 |= 0b10000000);
+  providedValues9to16HasChanged && (providedValues1to8 |= 0b00000001);
+  controlsHasChanged && (providedValues1to8 |= 0b00000010);
+  fuelHasChanged && (providedValues1to8 |= 0b00000100);
+  providedBytesForPositionAndRotationHasChanged &&
+    (providedValues1to8 |= 0b00001000);
+  xHasChanged && (providedValues1to8 |= 0b00010000);
+  yHasChanged && (providedValues1to8 |= 0b00100000);
+  zHasChanged && (providedValues1to8 |= 0b01000000);
+  rotationZHasChanged && (providedValues1to8 |= 0b10000000);
+
+  let providedValues9to16 = 0b00000000;
+  indexHasChanged && (providedValues9to16 |= 0b00000001);
+  healthHasChanged && (providedValues9to16 |= 0b00000010);
+  ordnanceChannel1HasChanged && (providedValues9to16 |= 0b00000100);
+  ordnanceChannel2HasChanged && (providedValues9to16 |= 0b00001000);
 
   let localOffset = 0;
 
@@ -270,41 +325,66 @@ export const gatherStateData = (
   };
 
   setUint8(providedValues1to8);
-  ____indexHasChanged && setUint8(idOverNetwork);
-  _controlsHasChanged && setUint8(controls);
-  ___healthHasChanged && setUint8(healthByte);
-  providedBytesForPositionAndAngleHasChanged &&
-    setUint8(providedBytesForPositionAndAngle);
-
+  providedValues9to16HasChanged && setUint8(providedValues9to16);
+  indexHasChanged && setUint8(idOverNetwork);
+  controlsHasChanged && setUint8(controls);
+  healthHasChanged && setUint8(healthByte);
+  fuelHasChanged && setUint8(fuelByte);
+  providedBytesForPositionAndRotationHasChanged &&
+    setUint8(providedBytesForPositionAndRotation);
   insertChangedBytes(xDifferenceSignificance, xBytes);
   insertChangedBytes(yDifferenceSignificance, yBytes);
-  // if (y !== prevValue || o.mesh.position.y !== prevValue2) {
-  //   prevValue = y;
-  //   prevValue2 = o.mesh.position.y;
-  //   console.log("--y:", Math.floor(y), o.mesh.position.y.toFixed(2));
-  // }
   insertChangedBytes(zDifferenceSignificance, zBytes);
   insertChangedBytes(rotationZDifferenceSignificance, rotationZBytes);
-
-  // local offset max total 17 bytes
-  // if (localOffset > types.unreliableStateSingleObjectMaxBytes) {
-  //   console.warn(
-  //     `Warning: Game object data exceeded the maximum size of ${types.unreliableStateSingleObjectMaxBytes} bytes. Actual size: ${localOffset} bytes.`
-  //   );
-  // }
+  ordnanceChannel1HasChanged && setUint8(ordnanceChannel1.byte1);
+  ordnanceChannel1HasChanged &&
+    !ordnanceChannel1.fitsInOneByte &&
+    setUint8(ordnanceChannel1.byte2);
+  ordnanceChannel2HasChanged && setUint8(ordnanceChannel2.byte1);
+  ordnanceChannel2HasChanged &&
+    !ordnanceChannel2.fitsInOneByte &&
+    setUint8(ordnanceChannel2.byte2);
   offset += localOffset;
 
   if (shouldAddToRecentStates()) {
-    recentStates[sequenceNumber].state[idOverNetwork] = {
-      index,
-      idOverNetwork,
-      controls,
-      health: healthByte,
-      x,
-      y,
-      z,
-      rotationZ,
-      providedBytesForPositionAndRotation: providedBytesForPositionAndAngle,
-    };
+    const o = recentStates[sequenceNumber].state[idOverNetwork];
+    if (o) {
+      o.index = index;
+      o.idOverNetwork = idOverNetwork;
+      o.controls = controls;
+      o.health = healthByte;
+      o.x = x;
+      o.y = y;
+      o.z = z;
+      o.rotationZ = rotationZ;
+      o.providedBytesForPositionAndRotation =
+        providedBytesForPositionAndRotation;
+      o.fuel = fuelByte;
+      o.ordnanceChannel1.byte1 = ordnanceChannel1.byte1;
+      o.ordnanceChannel1.byte2 = ordnanceChannel1.byte2;
+      o.ordnanceChannel2.byte1 = ordnanceChannel2.byte1;
+      o.ordnanceChannel2.byte2 = ordnanceChannel2.byte2;
+    } else {
+      recentStates[sequenceNumber].state[idOverNetwork] = {
+        index,
+        idOverNetwork,
+        controls,
+        health: healthByte,
+        x,
+        y,
+        z,
+        rotationZ,
+        providedBytesForPositionAndRotation,
+        fuel: fuelByte,
+        ordnanceChannel1: {
+          byte1: ordnanceChannel1.byte1,
+          byte2: ordnanceChannel1.byte2,
+        },
+        ordnanceChannel2: {
+          byte1: ordnanceChannel2.byte1,
+          byte2: ordnanceChannel2.byte2,
+        },
+      };
+    }
   }
 };

@@ -135,7 +135,7 @@ export const handleShot = (
       o.shotDelay += parameters.shotDelay;
       gameEventHandler({
         type: types.EventType.Shot,
-        data: gameObject,
+        data: { gameObject, delta },
       });
     }
   }

@@ -22,27 +22,32 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
       break;
     }
     case types.EventType.Shot: {
-      if (gameEvent.data.bullets > 0) {
+      const delta = gameEvent.data.delta;
+      const o = gameEvent.data.gameObject;
+      if (o.bullets >= 1) {
         const id = crypto.randomBytes(12).toString("hex");
-        const speed = gameEvent.data.speed + parameters.bulletSpeed;
+        const speed = o.speed + parameters.bulletSpeed;
         const type = types.GameObjectType.Bullet as types.GameObjectType.Bullet;
         const geometry = new THREE.BoxGeometry(600, 600, 1);
         const mesh = new THREE.Mesh(geometry);
         mesh.geometry.computeBoundingBox();
         const timeToLive = 1500;
-        mesh.position.copy(gameEvent.data.mesh.position);
+        mesh.position.copy(o.mesh.position);
         // mesh?.quaternion.copy(gameEvent.data.mesh.quaternion);
-        mesh.rotation.copy(gameEvent.data.mesh.rotation);
+        mesh.rotation.copy(o.mesh.rotation);
         mesh.translateY(5000);
         globals.localGameObjects.push({
           id,
           type,
           speed,
           mesh,
-          positionZ: gameEvent.data.positionZ,
+          positionZ: o.positionZ,
           timeToLive,
         });
-        gameEvent.data.bullets -= 1;
+        o.bullets -= Math.min(
+          o.bullets,
+          Math.max(delta / parameters.shotDelay, 1)
+        );
       }
       break;
     }
