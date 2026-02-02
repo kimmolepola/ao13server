@@ -3,7 +3,7 @@ import * as types from "../types";
 import * as globals from "../globals";
 import { startLoop } from "../loop/loop";
 import { sendReliableString } from "./channels";
-import { receiveControlsData } from "./objects";
+import { receiveInputData } from "../logic/tick";
 import { gameEventHandler } from "./events";
 import { decodeControls } from "../netcode/controls";
 import { handleReceiveAck } from "../netcode/ack";
@@ -27,8 +27,7 @@ export const onReceiveString = (
         text: data.text,
         userId: clientId,
         username:
-          globals.sharedGameObjects.find((x) => x.id === clientId)?.username ||
-          "",
+          globals.sharedObjects.find((x) => x.id === clientId)?.username || "",
       };
       sendReliableString({
         ...message,
@@ -46,7 +45,8 @@ export const onReceiveControls = (
   clientId: string
 ) => {
   const data = decodeControls(msg);
-  receiveControlsData(clientId, data);
+  // TODO: receive tick
+  receiveInputData(clientId, data);
 };
 
 export const onReceiveAck = (

@@ -1,3 +1,5 @@
+export const maxRollback = 8;
+export const tickInterval = 50;
 export const collisionMaxDistance = 0.7;
 export const collisionMaxDistanceLocalObject = 0.1;
 export const maxSharedObjects = 256;

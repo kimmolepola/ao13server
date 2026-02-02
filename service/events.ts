@@ -16,8 +16,7 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
     }
     case types.EventType.RemoveLocalObjectIndexes: {
       for (const index of gameEvent.data) {
-        globals.localGameObjects[index] &&
-          globals.localGameObjects.splice(index, 1);
+        globals.localObjects[index] && globals.localObjects.splice(index, 1);
       }
       break;
     }
@@ -36,7 +35,7 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
         // mesh?.quaternion.copy(gameEvent.data.mesh.quaternion);
         mesh.rotation.copy(o.mesh.rotation);
         mesh.translateY(5000);
-        globals.localGameObjects.push({
+        globals.localObjects.push({
           id,
           type,
           speed,

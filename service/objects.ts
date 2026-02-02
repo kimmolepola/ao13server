@@ -9,7 +9,7 @@ import { resetRecentStates } from "../netcode/state";
 
 const generateIdOverNetwork = () => {
   for (let i = 0; i < parameters.maxSharedObjects; i++) {
-    if (!globals.sharedGameObjects.some((x) => x.idOverNetwork === i)) {
+    if (!globals.sharedObjects.some((x) => x.idOverNetwork === i)) {
       return i;
     }
   }
@@ -30,7 +30,7 @@ const idOverNetworkFailure = (id: string) => {
     "Failed to add new object, generateIdOverNetwork failure. Id: ",
     id,
     ". SharedGameObjects:",
-    globals.sharedGameObjects
+    globals.sharedObjects
   );
 };
 
@@ -43,7 +43,7 @@ const addObject = async (id: string) => {
   const idOverNetwork = generateIdOverNetwork();
   if (idOverNetwork === -1) return idOverNetworkFailure(id);
 
-  const geometry = new THREE.BoxGeometry(5000, 5000, 1);
+  const geometry = new THREE.BoxGeometry(1, 1, 1);
   const mesh = new THREE.Mesh(geometry);
   mesh.geometry.computeBoundingBox();
   const gameObject: types.SharedGameObject = {
@@ -60,6 +60,7 @@ const addObject = async (id: string) => {
     controlsSpace: 0,
     controlsD: 0,
     controlsF: 0,
+    controlsE: 0,
     controlsOverChannelsUp: 0,
     controlsOverChannelsDown: 0,
     controlsOverChannelsLeft: 0,
@@ -67,6 +68,7 @@ const addObject = async (id: string) => {
     controlsOverChannelsSpace: 0,
     controlsOverChannelsD: 0,
     controlsOverChannelsF: 0,
+    controlsOverChannelsE: 0,
     speed: parameters.initialSpeed,
     fuel: parameters.maxFuelKg,
     bullets: 480,
@@ -77,12 +79,13 @@ const addObject = async (id: string) => {
     health: 100,
     positionZ: 1000,
   };
-  globals.sharedGameObjects.push(gameObject);
+  globals.sharedObjects.push(gameObject);
+  globals.sharedObjectsById[id] = gameObject;
 };
 
 export const savePlayerData = async () => {
   const data =
-    globals.sharedGameObjects.reduce((acc: types.PlayerState[], cur) => {
+    globals.sharedObjects.reduce((acc: types.PlayerState[], cur) => {
       if (cur.isPlayer) {
         acc.push({ clientId: cur.id, score: cur.score });
       }
@@ -92,8 +95,8 @@ export const savePlayerData = async () => {
 };
 
 export const handleNewId = async (newId: string) => {
-  if (!globals.sharedGameObjects.some((x) => x.id === newId)) {
-    if (globals.sharedGameObjects.length < parameters.maxSharedObjects) {
+  if (!globals.sharedObjects.some((x) => x.id === newId)) {
+    if (globals.sharedObjects.length < parameters.maxSharedObjects) {
       resetRecentStates();
       await addObject(newId);
       handleSendBaseState();
@@ -105,32 +108,39 @@ export const handleNewId = async (newId: string) => {
 };
 
 export const handleRemoveId = (idToRemove: string) => {
-  const indexToRemove = globals.sharedGameObjects.findIndex(
+  const indexToRemove = globals.sharedObjects.findIndex(
     (x) => x.id === idToRemove
   );
   if (indexToRemove !== -1) {
     savePlayerData();
-    globals.sharedGameObjects.splice(indexToRemove, 1);
+    globals.sharedObjects.splice(indexToRemove, 1);
+    delete globals.sharedObjectsById[idToRemove];
     handleSendBaseState();
   }
 };
 
-export const receiveControlsData = (remoteId: string, data: types.Controls) => {
-  const o = globals.sharedGameObjects.find((x) => x.id === remoteId);
-  if (o) {
-    o.controlsUp += data.up;
-    o.controlsDown += data.down;
-    o.controlsLeft += data.left;
-    o.controlsRight += data.right;
-    o.controlsSpace += data.space;
-    o.controlsD += data.d;
-    o.controlsF += data.f;
-    o.controlsOverChannelsUp += data.up;
-    o.controlsOverChannelsDown += data.down;
-    o.controlsOverChannelsLeft += data.left;
-    o.controlsOverChannelsRight += data.right;
-    o.controlsOverChannelsSpace += data.space;
-    o.controlsOverChannelsD += data.d;
-    o.controlsOverChannelsF += data.f;
-  }
+const oneFrame60FPS = 1000 / 60;
+export const receiveControlsData = (
+  remoteId: string,
+  data: types.InputsData
+) => {
+  // const o = globals.sharedGameObjects.find((x) => x.id === remoteId);
+  // if (o) {
+  //   o.controlsUp += data.controls.up * oneFrame60FPS;
+  //   o.controlsDown += data.down * oneFrame60FPS;
+  //   o.controlsLeft += data.left * oneFrame60FPS;
+  //   o.controlsRight += data.right * oneFrame60FPS;
+  //   o.controlsSpace += data.space * oneFrame60FPS;
+  //   o.controlsD += data.d * oneFrame60FPS;
+  //   o.controlsF += data.f * oneFrame60FPS;
+  //   o.controlsE += data.e * oneFrame60FPS;
+  //   o.controlsOverChannelsUp += data.up * oneFrame60FPS;
+  //   o.controlsOverChannelsDown += data.down * oneFrame60FPS;
+  //   o.controlsOverChannelsLeft += data.left * oneFrame60FPS;
+  //   o.controlsOverChannelsRight += data.right * oneFrame60FPS;
+  //   o.controlsOverChannelsSpace += data.space * oneFrame60FPS;
+  //   o.controlsOverChannelsD += data.d * oneFrame60FPS;
+  //   o.controlsOverChannelsF += data.f * oneFrame60FPS;
+  //   o.controlsOverChannelsE += data.e * oneFrame60FPS;
+  // }
 };

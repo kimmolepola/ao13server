@@ -25,8 +25,8 @@ const handleLocalObjects = (
   delta: number,
   gameEventHandler: types.GameEventHandler
 ) => {
-  for (let i = globals.localGameObjects.length - 1; i > -1; i--) {
-    const o = globals.localGameObjects[i];
+  for (let i = globals.localObjects.length - 1; i > -1; i--) {
+    const o = globals.localObjects[i];
     if (o) {
       const remove = handleLocalObject(delta, o);
       remove && localObjectsRemoveIndexes.push(i);
@@ -45,11 +45,11 @@ const handleObjects = (
   gatherState: boolean,
   gameEventHandler: types.GameEventHandler
 ) => {
-  gatherState && handleNewSequence();
+  // gatherState && handleNewSequence();
 
-  const objectCount = globals.sharedGameObjects.length;
+  const objectCount = globals.sharedObjects.length;
   for (let i = 0; i < objectCount; i++) {
-    const o = globals.sharedGameObjects[i];
+    const o = globals.sharedObjects[i];
     if (o) {
       checkHealth(o, gameEventHandler);
       detectCollision(o, gameEventHandler);
@@ -62,7 +62,7 @@ const handleObjects = (
       }
       // <-
       if (gatherState) {
-        gatherStateData(i, o);
+        // gatherStateData(i, o);
         refreshControlValues(o);
       }
     }
@@ -79,8 +79,8 @@ export const runFrame = (
   handleLocalObjects(delta, gameEventHandler);
   handleObjects(delta, time, shouldSendState, gameEventHandler);
 
-  if (shouldSendState) {
-    nextSendTime = time + parameters.unreliableStateInterval;
-    sendState();
-  }
+  // if (shouldSendState) {
+  //   nextSendTime = time + parameters.unreliableStateInterval;
+  //   sendState();
+  // }
 };

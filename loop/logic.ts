@@ -53,8 +53,8 @@ export const detectCollision = (
   const y = gameObject.mesh.position.y;
   const z = gameObject.positionZ;
 
-  for (let i = globals.localGameObjects.length - 1; i > -1; i--) {
-    const localGameObject = globals.localGameObjects[i];
+  for (let i = globals.localObjects.length - 1; i > -1; i--) {
+    const localGameObject = globals.localObjects[i];
     if (
       isColliding(
         x,
@@ -71,8 +71,8 @@ export const detectCollision = (
     }
   }
 
-  for (let i = globals.sharedGameObjects.length - 1; i > -1; i--) {
-    const sharedGameObject = globals.sharedGameObjects[i];
+  for (let i = globals.sharedObjects.length - 1; i > -1; i--) {
+    const sharedGameObject = globals.sharedObjects[i];
     if (
       sharedGameObject !== gameObject &&
       isColliding(x, y, z, sharedGameObject, parameters.collisionMaxDistance)
@@ -84,8 +84,8 @@ export const detectCollision = (
     }
   }
 
-  for (let i = globals.staticGameObjects.length - 1; i > -1; i--) {
-    const staticGameObject = globals.staticGameObjects[i];
+  for (let i = globals.staticObjects.length - 1; i > -1; i--) {
+    const staticGameObject = globals.staticObjects[i];
     if (isCollidingPlane(x, y, staticGameObject)) {
       gameEventHandler({
         type: types.EventType.CollisionStaticObject,

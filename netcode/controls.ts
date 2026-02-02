@@ -1,51 +1,45 @@
-import * as parameters from "../parameters";
+import * as types from "../types";
 
-const factor = parameters.networkToControlFactor;
+const data: types.InputsData = {
+  tickNumber: 0,
+  inputs: {
+    up: 0,
+    down: 0,
+    left: 0,
+    right: 0,
+    space: 0,
+    keyD: 0,
+    keyF: 0,
+    keyE: 0,
+  },
+};
 
-const getBit = (value: number, bitPosition: number) =>
-  !!((value >> bitPosition) & 1);
+function get2BitValueFromBufferBE(
+  buf: Buffer<ArrayBufferLike>, // byte1: tickNumber, byte2: value, byte3: value
+  pos: 0 | 2 | 4 | 6 | 8 | 10 | 12 | 14
+) {
+  const len = buf.length;
+
+  // Assemble big-endian integer manually
+  const value16 = len === 2 ? buf[1] : (buf[1] << 8) | buf[2];
+
+  return ((value16 >> pos) & 0b11) as types.Count60FPSWithin20FPS;
+}
 
 export const decodeControls = (
   msg: string | ArrayBuffer | Buffer<ArrayBufferLike>
 ) => {
   const buffer = msg as Buffer<ArrayBufferLike>;
-  const providedControls1to7 = buffer[0];
 
-  let offset = 1;
-  let position: 0 | 4 = 0;
-
-  const upIsProvided = getBit(providedControls1to7, 0);
-  const downIsProvided = getBit(providedControls1to7, 1);
-  const leftIsProvided = getBit(providedControls1to7, 2);
-  const rightIsProvided = getBit(providedControls1to7, 3);
-  const spaceIsProvided = getBit(providedControls1to7, 4);
-  const keyDIsProvided = getBit(providedControls1to7, 5);
-  const keyFIsProvided = getBit(providedControls1to7, 6);
-
-  const getNextValue = () => {
-    if (position) {
-      const byte = buffer[offset];
-      const value = byte >> position;
-      position = 0;
-      offset++;
-      return value;
-    } else {
-      const byte = buffer[offset];
-      const value = byte & 0x0f;
-      position = 4;
-      return value;
-    }
-  };
-
-  const data = {
-    up: upIsProvided ? getNextValue() * factor : 0,
-    down: downIsProvided ? getNextValue() * factor : 0,
-    left: leftIsProvided ? getNextValue() * factor : 0,
-    right: rightIsProvided ? getNextValue() * factor : 0,
-    space: spaceIsProvided ? getNextValue() * factor : 0,
-    d: keyDIsProvided ? getNextValue() * factor : 0,
-    f: keyFIsProvided ? getNextValue() * factor : 0,
-  };
+  data.tickNumber = buffer[0];
+  data.inputs.up = get2BitValueFromBufferBE(buffer, 0);
+  data.inputs.down = get2BitValueFromBufferBE(buffer, 2);
+  data.inputs.left = get2BitValueFromBufferBE(buffer, 4);
+  data.inputs.right = get2BitValueFromBufferBE(buffer, 6);
+  data.inputs.space = get2BitValueFromBufferBE(buffer, 8);
+  data.inputs.keyD = get2BitValueFromBufferBE(buffer, 10);
+  data.inputs.keyF = get2BitValueFromBufferBE(buffer, 12);
+  data.inputs.keyE = get2BitValueFromBufferBE(buffer, 14);
 
   return data;
 };

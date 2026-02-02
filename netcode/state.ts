@@ -9,7 +9,7 @@ let buffer = new ArrayBuffer(sequenceNumberBytes);
 let view = new DataView(buffer);
 let previousObjectCount = 0;
 let offset = 0;
-let sequenceNumber = 0;
+// let sequenceNumber = 0;
 
 const recentStates: types.RecentStates = {
   0: { acknowledged: false, state: {} },
@@ -22,16 +22,17 @@ const recentStates: types.RecentStates = {
   224: { acknowledged: false, state: {} },
 };
 
-const shouldAddToRecentStates = () => sequenceNumber % 32 === 0;
+const shouldAddToRecentStates = (sequenceNumber: number) =>
+  sequenceNumber % 32 === 0;
 
-const resetRecentStatesCurrentSequence = () => {
-  if (shouldAddToRecentStates()) {
+const resetRecentStatesCurrentSequence = (sequenceNumber: number) => {
+  if (shouldAddToRecentStates(sequenceNumber)) {
     delete recentStates[sequenceNumber];
     recentStates[sequenceNumber] = { acknowledged: false, state: {} };
   }
 };
 
-const getStateToCompareTo = () => {
+const getStateToCompareTo = (sequenceNumber: number) => {
   const maxSequenceNumber = parameters.stateMaxSequenceNumber;
   const sequenceNumbers = maxSequenceNumber + 1;
   const slotLength = parameters.recentStateSlotLength;
@@ -43,16 +44,12 @@ const getStateToCompareTo = () => {
   return recentState;
 };
 
-const increment8BitSequenceNumber = () => {
-  sequenceNumber = (sequenceNumber + 1) & 0xff;
-};
-
 const resetStateOffset = () => {
   offset = sequenceNumberBytes;
 };
 
 const syncBufferSize = () => {
-  const objectCount = globals.sharedGameObjects.length;
+  const objectCount = globals.sharedObjects.length;
   if (objectCount !== previousObjectCount) {
     previousObjectCount = objectCount;
     const maxBytes =
@@ -94,7 +91,7 @@ const acknowledgements: {
   acknowledged: {},
 };
 
-const resetExpectedAcks = () => {
+const resetExpectedAcks = (sequenceNumber: number) => {
   acknowledgements.expectedSequenceNumber = sequenceNumber;
   acknowledgements.acknowledged = {};
 };
@@ -128,16 +125,15 @@ export const receiveAck = (seqNum: number, clientId: string) => {
 
 export const sendState = () => {
   sendUnreliableBinary(Buffer.from(buffer, 0, offset));
-  increment8BitSequenceNumber();
 };
 
-export const handleNewSequence = () => {
+export const handleNewSequence = (sequenceNumber: number) => {
   syncBufferSize();
   resetStateOffset();
   checkAcks();
-  if (shouldAddToRecentStates()) {
-    resetRecentStatesCurrentSequence();
-    resetExpectedAcks();
+  if (shouldAddToRecentStates(sequenceNumber)) {
+    resetRecentStatesCurrentSequence(sequenceNumber);
+    resetExpectedAcks(sequenceNumber);
   }
   view.setUint8(0, sequenceNumber);
 };
@@ -179,16 +175,16 @@ const encodeOrdnance = (
 
 export const gatherStateData = (
   index: number,
-  gameObject: types.SharedGameObject
+  tickStateObject: types.TickStateObject,
+  sequenceNumber: number
 ) => {
-  const o = gameObject;
+  const o = tickStateObject;
 
   const idOverNetwork = o.idOverNetwork;
-  const x = encodeAxisValue(o.mesh.position.x);
-  const y = encodeAxisValue(o.mesh.position.y);
+  const x = encodeAxisValue(o.x);
+  const y = encodeAxisValue(o.y);
   const z = o.positionZ;
-  // const angleZ = encodeQuaternionWithOnlyZRotation(o.mesh.quaternion);
-  const rotationZ = encodeRotationZ(o.mesh.rotation.z);
+  const rotationZ = encodeRotationZ(o.rotationZ);
   const ____ctrlsUp = o.controlsOverChannelsUp;
   const __ctrlsDown = o.controlsOverChannelsDown;
   const __ctrlsLeft = o.controlsOverChannelsLeft;
@@ -196,6 +192,7 @@ export const gatherStateData = (
   const _ctrlsSpace = o.controlsOverChannelsSpace;
   const _____ctrlsD = o.controlsOverChannelsD;
   const _____ctrlsF = o.controlsOverChannelsF;
+  const _____ctrlsE = o.controlsOverChannelsE;
 
   let controls = 0b00000000;
   ____ctrlsUp && (controls |= 0b00000001);
@@ -231,7 +228,7 @@ export const gatherStateData = (
   let providedValues9to16HasChanged = true;
   let fuelHasChanged = true;
 
-  const stateToCompareTo = getStateToCompareTo();
+  const stateToCompareTo = getStateToCompareTo(sequenceNumber);
   const oState = stateToCompareTo.state[idOverNetwork];
   if (oState && stateToCompareTo.acknowledged) {
     index === oState.index && (indexHasChanged = false);
@@ -299,14 +296,14 @@ export const gatherStateData = (
     (providedValues1to8 |= 0b00001000);
   xHasChanged && (providedValues1to8 |= 0b00010000);
   yHasChanged && (providedValues1to8 |= 0b00100000);
-  zHasChanged && (providedValues1to8 |= 0b01000000);
   rotationZHasChanged && (providedValues1to8 |= 0b10000000);
 
   let providedValues9to16 = 0b00000000;
   indexHasChanged && (providedValues9to16 |= 0b00000001);
-  healthHasChanged && (providedValues9to16 |= 0b00000010);
-  ordnanceChannel1HasChanged && (providedValues9to16 |= 0b00000100);
-  ordnanceChannel2HasChanged && (providedValues9to16 |= 0b00001000);
+  zHasChanged && (providedValues1to8 |= 0b00000010);
+  healthHasChanged && (providedValues9to16 |= 0b00000100);
+  ordnanceChannel1HasChanged && (providedValues9to16 |= 0b00001000);
+  ordnanceChannel2HasChanged && (providedValues9to16 |= 0b00010000);
 
   let localOffset = 0;
 
@@ -346,7 +343,7 @@ export const gatherStateData = (
     setUint8(ordnanceChannel2.byte2);
   offset += localOffset;
 
-  if (shouldAddToRecentStates()) {
+  if (shouldAddToRecentStates(sequenceNumber)) {
     const o = recentStates[sequenceNumber].state[idOverNetwork];
     if (o) {
       o.index = index;

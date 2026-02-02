@@ -4,8 +4,8 @@ import * as types from "./types";
 import * as utils from "./utils";
 
 export const setupStaticObjects = () => {
-  globals.staticGameObjects.length = 0;
-  globals.staticGameObjects.push(...staticObjects);
+  globals.staticObjects.length = 0;
+  globals.staticObjects.push(...staticObjects);
 };
 
 // image2-1px4_5m.jpeg
