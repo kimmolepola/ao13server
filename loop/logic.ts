@@ -133,10 +133,10 @@ export const handleShot = (
     if (o.shotDelay <= timeQuantity) {
       // shoot
       o.shotDelay += parameters.shotDelay;
-      gameEventHandler({
-        type: types.EventType.Shot,
-        data: { gameObject, delta },
-      });
+      // gameEventHandler({
+      //   type: types.EventType.Shot,
+      //   data: { gameObject, delta },
+      // });
     }
   }
   o.shotDelay -= Math.min(delta, o.shotDelay);

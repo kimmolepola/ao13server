@@ -1,3 +1,4 @@
+import THREE from "three";
 import * as types from "./types";
 
 export const staticObjects: types.StaticGameObject[] = [];
@@ -9,3 +10,5 @@ export const clients: types.Clients = {
 };
 export const queue: string[] = []; // ids
 export const sharedObjectsById: { [id: string]: types.SharedGameObject } = {};
+export const object3d = new THREE.Object3D();
+export const axis = new THREE.Vector3(0, 0, 1);

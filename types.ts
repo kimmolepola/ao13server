@@ -18,28 +18,23 @@ export type TickStateObject = GameObject & {
   rotationZ: number;
   score: number;
   speed: number;
-  controlsUp: number;
-  controlsDown: number;
-  controlsLeft: number;
-  controlsRight: number;
-  controlsSpace: number;
-  controlsF: number;
-  controlsD: number;
-  controlsE: number;
-  controlsOverChannelsUp: number;
-  controlsOverChannelsDown: number;
-  controlsOverChannelsLeft: number;
-  controlsOverChannelsRight: number;
-  controlsOverChannelsSpace: number;
-  controlsOverChannelsD: number;
-  controlsOverChannelsF: number;
-  controlsOverChannelsE: number;
   rotationSpeed: number;
   verticalSpeed: number;
   shotDelay: number;
   positionZ: number;
   fuel: number;
   bullets: number;
+  simulationId: number;
+};
+
+export type TickLocalObject = {
+  type: GameObjectType.Bullet;
+  x: number;
+  y: number;
+  rotationZ: number;
+  speed: number;
+  timeToLive: number;
+  originId: number;
 };
 
 export const recentStatesLength = 8; // sequence number max value 256 / 32 = 8
@@ -150,7 +145,10 @@ export type GameEvent =
     }
   | {
       type: EventType.Shot;
-      data: { gameObject: SharedGameObject; delta: number };
+      data: {
+        gameObject: TickStateObject;
+        tickLocalObjects: TickLocalObject[];
+      };
     }
   | { type: EventType.RemoveLocalObjectIndexes; data: number[] };
 
@@ -190,14 +188,14 @@ export type ChatMessageFromServer = {
 };
 
 export type Inputs = {
-  up: Count60FPSWithin20FPS;
-  down: Count60FPSWithin20FPS;
-  left: Count60FPSWithin20FPS;
-  right: Count60FPSWithin20FPS;
-  space: Count60FPSWithin20FPS;
-  keyD: Count60FPSWithin20FPS;
-  keyF: Count60FPSWithin20FPS;
-  keyE: Count60FPSWithin20FPS;
+  up: Count60FPSWithin20FPS | undefined;
+  down: Count60FPSWithin20FPS | undefined;
+  left: Count60FPSWithin20FPS | undefined;
+  right: Count60FPSWithin20FPS | undefined;
+  space: Count60FPSWithin20FPS | undefined;
+  keyD: Count60FPSWithin20FPS | undefined;
+  keyF: Count60FPSWithin20FPS | undefined;
+  keyE: Count60FPSWithin20FPS | undefined;
 };
 
 export type InputsData = {

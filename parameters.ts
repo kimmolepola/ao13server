@@ -5,7 +5,7 @@ export const collisionMaxDistanceLocalObject = 0.1;
 export const maxSharedObjects = 256;
 export const savePlayerDataInterval = 100000;
 export const chatMessageTimeToLive = 60000;
-export const tickRate = 1000 / 60; // FPS
+// export const tickRate = 1000 / 60; // FPS
 export const rotationDecay = 0.99;
 export const verticalDecay = 0.99;
 // netcode
@@ -65,7 +65,7 @@ export const forceAscOrDescToVerticalSpeedFactor = 0.01;
 
 export const bulletSpeed = 2000;
 export const bulletSpeedReductionFactor = 0.99;
-export const shotDelay = 10;
+export const shotDelay = 100;
 
 export const maxFuelKg = 8200;
 export const fuelToNetworkRatio = 255 / maxFuelKg;

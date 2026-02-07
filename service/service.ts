@@ -3,7 +3,7 @@ import * as types from "../types";
 import * as globals from "../globals";
 import { startLoop } from "../loop/loop";
 import { sendReliableString } from "./channels";
-import { receiveInputData } from "../logic/tick";
+import { receivedInputData } from "../logic/tick";
 import { gameEventHandler } from "./events";
 import { decodeControls } from "../netcode/controls";
 import { handleReceiveAck } from "../netcode/ack";
@@ -46,7 +46,7 @@ export const onReceiveControls = (
 ) => {
   const data = decodeControls(msg);
   // TODO: receive tick
-  receiveInputData(clientId, data);
+  receivedInputData(clientId, data);
 };
 
 export const onReceiveAck = (

@@ -5,6 +5,9 @@ import * as globals from "../globals";
 import * as parameters from "../parameters";
 import { handleRemoveId } from "./objects";
 
+const object3d = globals.object3d;
+const axis = globals.axis;
+
 export const gameEventHandler = (gameEvent: types.GameEvent) => {
   switch (gameEvent.type) {
     case types.EventType.HealthZero: {
@@ -21,32 +24,23 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
       break;
     }
     case types.EventType.Shot: {
-      const delta = gameEvent.data.delta;
       const o = gameEvent.data.gameObject;
+      const localObjects = gameEvent.data.tickLocalObjects;
       if (o.bullets >= 1) {
-        const id = crypto.randomBytes(12).toString("hex");
-        const speed = o.speed + parameters.bulletSpeed;
-        const type = types.GameObjectType.Bullet as types.GameObjectType.Bullet;
-        const geometry = new THREE.BoxGeometry(600, 600, 1);
-        const mesh = new THREE.Mesh(geometry);
-        mesh.geometry.computeBoundingBox();
-        const timeToLive = 1500;
-        mesh.position.copy(o.mesh.position);
-        // mesh?.quaternion.copy(gameEvent.data.mesh.quaternion);
-        mesh.rotation.copy(o.mesh.rotation);
-        mesh.translateY(5000);
-        globals.localObjects.push({
-          id,
-          type,
-          speed,
-          mesh,
-          positionZ: o.positionZ,
-          timeToLive,
-        });
-        o.bullets -= Math.min(
-          o.bullets,
-          Math.max(delta / parameters.shotDelay, 1)
-        );
+        object3d.position.set(o.x, o.y, 0);
+        object3d.setRotationFromAxisAngle(axis, o.rotationZ);
+        object3d.translateY(1);
+        const obj = {
+          type: types.GameObjectType.Bullet as const,
+          x: object3d.position.x,
+          y: object3d.position.y,
+          rotationZ: o.rotationZ,
+          speed: o.speed,
+          timeToLive: 1500,
+          originId: o.idOverNetwork,
+        };
+        o.bullets -= Math.min(o.bullets, 1);
+        localObjects.push(obj);
       }
       break;
     }
