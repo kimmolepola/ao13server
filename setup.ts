@@ -2,6 +2,7 @@ import * as THREE from "three";
 import * as globals from "./globals";
 import * as types from "./types";
 import * as utils from "./utils";
+import * as parameters from "./parameters";
 
 export const setupStaticObjects = () => {
   globals.staticObjects.length = 0;

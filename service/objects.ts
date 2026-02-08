@@ -34,58 +34,39 @@ const idOverNetworkFailure = (id: string) => {
   );
 };
 
-const addObject = async (id: string) => {
+export const insertNewObject = async (
+  id: string,
+  freeObject: types.TickStateObject
+) => {
   if (id.length !== 32) return idFailure(id);
 
   const { data } = await api.getGameObject(id);
   if (!data) return dataFailure(id);
 
-  const idOverNetwork = generateIdOverNetwork();
-  if (idOverNetwork === -1) return idOverNetworkFailure(id);
-
-  const geometry = new THREE.BoxGeometry(1, 1, 1);
-  const mesh = new THREE.Mesh(geometry);
-  mesh.geometry.computeBoundingBox();
-  const gameObject: types.SharedGameObject = {
-    idOverNetwork,
-    score: data.score || 0,
-    isPlayer: data.isPlayer || false,
-    username: data.username || "",
-    id,
-    type: types.GameObjectType.Fighter as types.GameObjectType.Fighter,
-    controlsUp: 0,
-    controlsDown: 0,
-    controlsLeft: 0,
-    controlsRight: 0,
-    controlsSpace: 0,
-    controlsD: 0,
-    controlsF: 0,
-    controlsE: 0,
-    controlsOverChannelsUp: 0,
-    controlsOverChannelsDown: 0,
-    controlsOverChannelsLeft: 0,
-    controlsOverChannelsRight: 0,
-    controlsOverChannelsSpace: 0,
-    controlsOverChannelsD: 0,
-    controlsOverChannelsF: 0,
-    controlsOverChannelsE: 0,
-    speed: parameters.initialSpeed,
-    fuel: parameters.maxFuelKg,
-    bullets: 480,
-    rotationSpeed: 0,
-    verticalSpeed: 0,
-    mesh,
-    shotDelay: 0,
-    health: 100,
-    positionZ: 1000,
-  };
-  globals.sharedObjects.push(gameObject);
-  globals.sharedObjectsById[id] = gameObject;
+  const o = freeObject;
+  o.exists = true;
+  o.currentLoopId = -1;
+  o.score = data.score || 0;
+  o.isPlayer = data.isPlayer || false;
+  o.username = data.username = "";
+  o.id = id;
+  o.type = types.GameObjectType.Fighter as const;
+  o.speed = parameters.initialSpeed;
+  o.fuel = parameters.maxFuelKg;
+  o.bullets = 480;
+  o.rotationSpeed = 0;
+  o.verticalSpeed = 0;
+  o.x = 0;
+  o.y = 0;
+  o.z = 1000;
+  o.shotDelay = 0;
+  o.health = 100;
+  o.rotationZ = 0;
 };
 
-export const savePlayerData = async () => {
+export const savePlayerData = async (currentState: types.TickStateObject[]) => {
   const data =
-    globals.sharedObjects.reduce((acc: types.PlayerState[], cur) => {
+    currentState.reduce((acc: types.PlayerState[], cur) => {
       if (cur.isPlayer) {
         acc.push({ clientId: cur.id, score: cur.score });
       }
@@ -98,8 +79,8 @@ export const handleNewId = async (newId: string) => {
   if (!globals.sharedObjects.some((x) => x.id === newId)) {
     if (globals.sharedObjects.length < parameters.maxSharedObjects) {
       resetRecentStates();
-      await addObject(newId);
-      handleSendBaseState();
+      // await addObject(newId);
+      // handleSendBaseState();
     } else {
       globals.queue.push(newId);
       handleSendQueue(newId);
@@ -107,16 +88,13 @@ export const handleNewId = async (newId: string) => {
   }
 };
 
-export const handleRemoveId = (idToRemove: string) => {
-  const indexToRemove = globals.sharedObjects.findIndex(
-    (x) => x.id === idToRemove
-  );
-  if (indexToRemove !== -1) {
-    savePlayerData();
-    globals.sharedObjects.splice(indexToRemove, 1);
-    delete globals.sharedObjectsById[idToRemove];
-    handleSendBaseState();
-  }
+export const handleRemoveId = (data: {
+  currentState: types.TickStateObject[];
+  currentStateObject: types.TickStateObject;
+}) => {
+  data.currentStateObject.exists = false;
+  savePlayerData(data.currentState);
+  handleSendBaseState(data.currentState);
 };
 
 const oneFrame60FPS = 1000 / 60;
@@ -144,3 +122,52 @@ export const receiveControlsData = (
   //   o.controlsOverChannelsE += data.e * oneFrame60FPS;
   // }
 };
+
+// const addObject = async (id: string) => {
+//   if (id.length !== 32) return idFailure(id);
+
+//   const { data } = await api.getGameObject(id);
+//   if (!data) return dataFailure(id);
+
+//   const idOverNetwork = generateIdOverNetwork();
+//   if (idOverNetwork === -1) return idOverNetworkFailure(id);
+
+//   const geometry = new THREE.BoxGeometry(1, 1, 1);
+//   const mesh = new THREE.Mesh(geometry);
+//   mesh.geometry.computeBoundingBox();
+//   const gameObject: types.SharedGameObject = {
+//     idOverNetwork,
+//     score: data.score || 0,
+//     isPlayer: data.isPlayer || false,
+//     username: data.username || "",
+//     id,
+//     type: types.GameObjectType.Fighter as types.GameObjectType.Fighter,
+//     controlsUp: 0,
+//     controlsDown: 0,
+//     controlsLeft: 0,
+//     controlsRight: 0,
+//     controlsSpace: 0,
+//     controlsD: 0,
+//     controlsF: 0,
+//     controlsE: 0,
+//     controlsOverChannelsUp: 0,
+//     controlsOverChannelsDown: 0,
+//     controlsOverChannelsLeft: 0,
+//     controlsOverChannelsRight: 0,
+//     controlsOverChannelsSpace: 0,
+//     controlsOverChannelsD: 0,
+//     controlsOverChannelsF: 0,
+//     controlsOverChannelsE: 0,
+//     speed: parameters.initialSpeed,
+//     fuel: parameters.maxFuelKg,
+//     bullets: 480,
+//     rotationSpeed: 0,
+//     verticalSpeed: 0,
+//     mesh,
+//     shotDelay: 0,
+//     health: 100,
+//     positionZ: 1000,
+//   };
+//   globals.sharedObjects.push(gameObject);
+//   globals.sharedObjectsById[id] = gameObject;
+// };

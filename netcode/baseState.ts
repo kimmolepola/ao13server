@@ -2,9 +2,10 @@ import * as globals from "../globals";
 import * as types from "../types";
 import { sendReliableString } from "../service/channels";
 
-export const handleSendBaseState = () => {
-  const sharedObjects: types.BaseStateSharedObject[] =
-    globals.sharedObjects.map((x) => ({
+export const handleSendBaseState = (currentState: types.TickStateObject[]) => {
+  const sharedObjects: types.BaseStateSharedObject[] = currentState
+    .filter((x) => x.exists)
+    .map((x) => ({
       id: x.id,
       isPlayer: x.isPlayer,
       username: x.username,

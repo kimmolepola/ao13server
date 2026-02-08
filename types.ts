@@ -1,6 +1,15 @@
 import { PeerConnection, DataChannel } from "node-datachannel";
 import * as THREE from "three";
 
+export enum ReceivedEventType {
+  NewId,
+  RemoveId,
+}
+
+export type ReceivedEvent =
+  | { type: ReceivedEventType.NewId; data: string }
+  | { type: ReceivedEventType.RemoveId; data: string };
+
 export type Count60FPSWithin20FPS = 0 | 1 | 2 | 3;
 export type ReceivedInputs = {
   tickNumber: number;
@@ -10,27 +19,30 @@ export type ReceivedInputs = {
 
 export type TickStateObject = GameObject & {
   exists: boolean;
+  currentLoopId: number;
   idOverNetwork: number;
+  isPlayer: boolean;
+  username: string;
   health: number;
   type: GameObjectType.Fighter;
   x: number;
   y: number;
+  z: number;
   rotationZ: number;
   score: number;
   speed: number;
   rotationSpeed: number;
   verticalSpeed: number;
   shotDelay: number;
-  positionZ: number;
   fuel: number;
   bullets: number;
-  simulationId: number;
 };
 
 export type TickLocalObject = {
   type: GameObjectType.Bullet;
   x: number;
   y: number;
+  z: number;
   rotationZ: number;
   speed: number;
   timeToLive: number;
@@ -124,24 +136,30 @@ export enum EventType {
   CollisionStaticObject,
   Shot,
   RemoveLocalObjectIndexes,
+  Queue,
+  RemoveId,
+  NewId,
 }
 
 export type GameEvent =
   | {
       type: EventType.HealthZero;
-      data: SharedGameObject;
+      data: {
+        currentState: TickStateObject[];
+        currentStateObject: TickStateObject;
+      };
     }
   | {
       type: EventType.Collision;
-      data: [currentObject: SharedGameObject, otherObject: SharedGameObject];
+      data: [currentObject: TickStateObject, otherObject: TickStateObject];
     }
   | {
       type: EventType.CollisionLocalObject;
-      data: [currentObject: SharedGameObject, otherObject: LocalGameObject];
+      data: [currentObject: TickStateObject, otherObject: TickLocalObject];
     }
   | {
       type: EventType.CollisionStaticObject;
-      data: [currentObject: SharedGameObject, otherObject: StaticGameObject];
+      data: [currentObject: TickStateObject, otherObject: StaticGameObject];
     }
   | {
       type: EventType.Shot;
@@ -150,7 +168,17 @@ export type GameEvent =
         tickLocalObjects: TickLocalObject[];
       };
     }
-  | { type: EventType.RemoveLocalObjectIndexes; data: number[] };
+  | { type: EventType.RemoveLocalObjectIndexes; data: number[] }
+  | { type: EventType.Queue; data: string } // data: id
+  | {
+      type: EventType.NewId;
+      data: {
+        id: string;
+        freeObject: TickStateObject;
+        currentState: TickStateObject[];
+      };
+    }
+  | { type: EventType.RemoveId; data: string }; // data: id
 
 export type GameEventHandler = (e: GameEvent) => void;
 

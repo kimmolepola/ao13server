@@ -3,7 +3,7 @@ import * as types from "../types";
 import * as globals from "../globals";
 import { startLoop } from "../loop/loop";
 import { sendReliableString } from "./channels";
-import { receivedInputData } from "../logic/tick";
+import { receiveInputData } from "../logic/tick";
 import { gameEventHandler } from "./events";
 import { decodeControls } from "../netcode/controls";
 import { handleReceiveAck } from "../netcode/ack";
@@ -40,13 +40,12 @@ export const onReceiveString = (
   }
 };
 
-export const onReceiveControls = (
+export const onReceiveInputs = (
   msg: string | ArrayBuffer | Buffer<ArrayBufferLike>,
   clientId: string
 ) => {
   const data = decodeControls(msg);
-  // TODO: receive tick
-  receivedInputData(clientId, data);
+  receiveInputData(clientId, data);
 };
 
 export const onReceiveAck = (

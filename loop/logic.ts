@@ -6,12 +6,12 @@ const isColliding = (
   x: number,
   y: number,
   z: number,
-  otherObject: types.LocalGameObject | types.SharedGameObject,
+  otherObject: types.TickLocalObject | types.TickStateObject,
   maxDistance: number
 ) => {
-  const dx = x - otherObject.mesh.position.x;
-  const dy = y - otherObject.mesh.position.y;
-  const dz = z - otherObject.positionZ;
+  const dx = x - otherObject.x;
+  const dy = y - otherObject.y;
+  const dz = z - otherObject.z;
 
   const distSq = dx * dx + dy * dy + dz * dz;
   const maxDistSq = maxDistance * maxDistance;
@@ -45,16 +45,19 @@ const isCollidingPlane = (
   return inside;
 };
 
-export const detectCollision = (
-  gameObject: types.SharedGameObject,
+export const checkCollisions = (
+  loopId: number,
+  gameObject: types.TickStateObject,
+  sharedObjects: types.TickStateObject[],
+  localObjects: types.TickLocalObject[],
   gameEventHandler: types.GameEventHandler
 ) => {
-  const x = gameObject.mesh.position.x;
-  const y = gameObject.mesh.position.y;
-  const z = gameObject.positionZ;
+  const x = gameObject.x;
+  const y = gameObject.y;
+  const z = gameObject.z;
 
-  for (let i = globals.localObjects.length - 1; i > -1; i--) {
-    const localGameObject = globals.localObjects[i];
+  for (let i = localObjects.length - 1; i > -1; i--) {
+    const localGameObject = localObjects[i];
     if (
       isColliding(
         x,
@@ -71,10 +74,12 @@ export const detectCollision = (
     }
   }
 
-  for (let i = globals.sharedObjects.length - 1; i > -1; i--) {
-    const sharedGameObject = globals.sharedObjects[i];
+  for (let i = sharedObjects.length - 1; i > -1; i--) {
+    const sharedGameObject = sharedObjects[i];
     if (
       sharedGameObject !== gameObject &&
+      sharedGameObject.exists &&
+      sharedGameObject.currentLoopId === loopId &&
       isColliding(x, y, z, sharedGameObject, parameters.collisionMaxDistance)
     ) {
       gameEventHandler({
@@ -100,10 +105,10 @@ export const checkHealth = (
   commonGameEventHandler: types.GameEventHandler
 ) => {
   if (gameObject.health <= 0) {
-    commonGameEventHandler({
-      type: types.EventType.HealthZero,
-      data: gameObject,
-    });
+    // commonGameEventHandler({
+    //   type: types.EventType.HealthZero,
+    //   data: gameObject,
+    // });
   }
 };
 
@@ -235,3 +240,53 @@ export const handleMovement = (delta: number, o: types.SharedGameObject) => {
 
   o.fuel -= Math.min(o.fuel, o.speed * delta * 0.000001);
 };
+
+// export const detectCollision = (
+//   gameObject: types.SharedGameObject,
+//   gameEventHandler: types.GameEventHandler
+// ) => {
+//   const x = gameObject.mesh.position.x;
+//   const y = gameObject.mesh.position.y;
+//   const z = gameObject.positionZ;
+
+//   for (let i = globals.localObjects.length - 1; i > -1; i--) {
+//     const localGameObject = globals.localObjects[i];
+//     if (
+//       isColliding(
+//         x,
+//         y,
+//         z,
+//         localGameObject,
+//         parameters.collisionMaxDistanceLocalObject
+//       )
+//     ) {
+//       gameEventHandler({
+//         type: types.EventType.CollisionLocalObject,
+//         data: [gameObject, localGameObject],
+//       });
+//     }
+//   }
+
+//   for (let i = globals.sharedObjects.length - 1; i > -1; i--) {
+//     const sharedGameObject = globals.sharedObjects[i];
+//     if (
+//       sharedGameObject !== gameObject &&
+//       isColliding(x, y, z, sharedGameObject, parameters.collisionMaxDistance)
+//     ) {
+//       gameEventHandler({
+//         type: types.EventType.Collision,
+//         data: [gameObject, sharedGameObject],
+//       });
+//     }
+//   }
+
+//   for (let i = globals.staticObjects.length - 1; i > -1; i--) {
+//     const staticGameObject = globals.staticObjects[i];
+//     if (isCollidingPlane(x, y, staticGameObject)) {
+//       gameEventHandler({
+//         type: types.EventType.CollisionStaticObject,
+//         data: [gameObject, staticGameObject],
+//       });
+//     }
+//   }
+// };

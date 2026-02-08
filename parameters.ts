@@ -3,7 +3,6 @@ export const tickInterval = 50;
 export const collisionMaxDistance = 0.7;
 export const collisionMaxDistanceLocalObject = 0.1;
 export const maxSharedObjects = 256;
-export const savePlayerDataInterval = 100000;
 export const chatMessageTimeToLive = 60000;
 // export const tickRate = 1000 / 60; // FPS
 export const rotationDecay = 0.99;

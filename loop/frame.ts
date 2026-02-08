@@ -6,7 +6,7 @@ import {
   handleMovement,
   handleShot,
   checkHealth,
-  detectCollision,
+  checkCollisions,
   handleLocalObject,
 } from "./logic";
 import {
@@ -52,7 +52,7 @@ const handleObjects = (
     const o = globals.sharedObjects[i];
     if (o) {
       checkHealth(o, gameEventHandler);
-      detectCollision(o, gameEventHandler);
+      // detectCollision(o, gameEventHandler);
       handleMovement(delta, o);
       handleShot(delta, o, gameEventHandler);
       // mock ->
