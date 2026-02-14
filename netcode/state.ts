@@ -173,9 +173,37 @@ const encodeOrdnance = (
   out.fitsInOneByte = false;
 };
 
+const inputsToByte = (objectInputs: types.Inputs) => {
+  const ____ctrlsUp = objectInputs.up;
+  const __ctrlsDown = objectInputs.down;
+  const __ctrlsLeft = objectInputs.left;
+  const _ctrlsRight = objectInputs.right;
+  const _ctrlsSpace = objectInputs.space;
+  const _____ctrlsD = objectInputs.keyD;
+  const _____ctrlsF = objectInputs.keyF;
+  const _____ctrlsE = objectInputs.keyE;
+
+  let inputs = 0b00000000;
+  ____ctrlsUp && (inputs |= 0b00000001);
+  __ctrlsDown && (inputs |= 0b00000010);
+  __ctrlsLeft && (inputs |= 0b00000100);
+  _ctrlsRight && (inputs |= 0b00001000);
+  _ctrlsSpace && (inputs |= 0b00010000);
+  _____ctrlsD && (inputs |= 0b00100000);
+  _____ctrlsF && (inputs |= 0b01000000);
+  _____ctrlsE && (inputs |= 0b10000000);
+
+  return inputs;
+};
+
 export const gatherStateData = (
   index: number,
   tickStateObject: types.TickStateObject,
+  objectInputs: types.InputsWithBytes,
+  objectInputsPrev: types.InputsWithBytes | undefined,
+  objectInputsPrevPrev: types.InputsWithBytes | undefined,
+  objectInputsPrevPrevPrev: types.InputsWithBytes | undefined,
+  objectInputsPrevPrevPrevPrev: types.InputsWithBytes | undefined,
   sequenceNumber: number
 ) => {
   const o = tickStateObject;
@@ -185,23 +213,17 @@ export const gatherStateData = (
   const y = encodeAxisValue(o.y);
   const z = o.z;
   const rotationZ = encodeRotationZ(o.rotationZ);
-  const ____ctrlsUp = 0; // o.controlsOverChannelsUp;
-  const __ctrlsDown = 0; // o.controlsOverChannelsDown;
-  const __ctrlsLeft = 0; // o.controlsOverChannelsLeft;
-  const _ctrlsRight = 0; // o.controlsOverChannelsRight;
-  const _ctrlsSpace = 0; // o.controlsOverChannelsSpace;
-  const _____ctrlsD = 0; // o.controlsOverChannelsD;
-  const _____ctrlsF = 0; // o.controlsOverChannelsF;
-  const _____ctrlsE = 0; // o.controlsOverChannelsE;
 
-  let controls = 0b00000000;
-  ____ctrlsUp && (controls |= 0b00000001);
-  __ctrlsDown && (controls |= 0b00000010);
-  __ctrlsLeft && (controls |= 0b00000100);
-  _ctrlsRight && (controls |= 0b00001000);
-  _ctrlsSpace && (controls |= 0b00010000);
-  _____ctrlsD && (controls |= 0b00100000);
-  _____ctrlsF && (controls |= 0b01000000);
+  const inputs1 = objectInputs.byte1;
+  const inputs2 = objectInputs.byte2;
+  const inputsPrev1 = objectInputsPrev?.byte1;
+  const inputsPrev2 = objectInputsPrev?.byte2;
+  const inputsPrevPrev1 = objectInputsPrevPrev?.byte1;
+  const inputsPrevPrev2 = objectInputsPrevPrev?.byte2;
+  const inputsPrevPrevPrev1 = objectInputsPrevPrevPrev?.byte1;
+  const inputsPrevPrevPrev2 = objectInputsPrevPrevPrev?.byte2;
+  const inputsPrevPrevPrevPrev1 = objectInputsPrevPrevPrevPrev?.byte1;
+  const inputsPrevPrevPrevPrev2 = objectInputsPrevPrevPrevPrev?.byte2;
 
   const healthByte = o.health & 0xff;
   const fuelByte = (o.fuel * parameters.fuelToNetworkRatio) & 0xff;
@@ -212,7 +234,17 @@ export const gatherStateData = (
   const rotationZBytes = getUint8Bytes(rotationZ);
 
   let indexHasChanged = true;
-  let controlsHasChanged = true;
+  let inputs1HasChanged = true;
+  let inputs2HasChanged = true;
+  let lateInputsHasChanged = true;
+  let inputsPrev1HasChanged = true;
+  let inputsPrev2HasChanged = true;
+  let inputsPrevPrev1HasChanged = true;
+  let inputsPrevPrev2HasChanged = true;
+  let inputsPrevPrevPrev1HasChanged = true;
+  let inputsPrevPrevPrev2HasChanged = true;
+  let inputsPrevPrevPrevPrev1HasChanged = true;
+  let inputsPrevPrevPrevPrev2HasChanged = true;
   let healthHasChanged = true;
   let xHasChanged = true;
   let yHasChanged = true;
@@ -232,7 +264,23 @@ export const gatherStateData = (
   const oState = stateToCompareTo.state[idOverNetwork];
   if (oState && stateToCompareTo.acknowledged) {
     index === oState.index && (indexHasChanged = false);
-    controls === oState.controls && (controlsHasChanged = false);
+    inputs1 === oState.inputs1 && (inputs1HasChanged = false);
+    inputs2 === oState.inputs2 && (inputs2HasChanged = false);
+    inputsPrev1 === oState.inputsPrev1 && (inputsPrev1HasChanged = false);
+    inputsPrev2 === oState.inputsPrev2 && (inputsPrev2HasChanged = false);
+    inputsPrevPrev1 === oState.inputsPrevPrev1 &&
+      (inputsPrevPrev1HasChanged = false);
+    inputsPrevPrev2 === oState.inputsPrevPrev2 &&
+      (inputsPrevPrev2HasChanged = false);
+    inputsPrevPrevPrev1 === oState.inputsPrevPrevPrev1 &&
+      (inputsPrevPrevPrev1HasChanged = false);
+    inputsPrevPrevPrev2 === oState.inputsPrevPrevPrev2 &&
+      (inputsPrevPrevPrev2HasChanged = false);
+    inputsPrevPrevPrevPrev1 === oState.inputsPrevPrevPrevPrev1 &&
+      (inputsPrevPrevPrevPrev1HasChanged = false);
+    inputsPrevPrevPrevPrev2 === oState.inputsPrevPrevPrevPrev2 &&
+      (inputsPrevPrevPrevPrev2HasChanged = false);
+
     healthByte === oState.health && (healthHasChanged = false);
     const oXBytes = getUint8Bytes(oState.x);
     xDifferenceSignificance = getDifferenceSignificance(xBytes, oXBytes);
@@ -262,6 +310,15 @@ export const gatherStateData = (
     !ordnanceChannel1HasChanged &&
     !ordnanceChannel2HasChanged &&
     (providedValues9to16HasChanged = false);
+  !inputsPrev1HasChanged &&
+    !inputsPrev2HasChanged &&
+    !inputsPrevPrev1HasChanged &&
+    !inputsPrevPrev2HasChanged &&
+    !inputsPrevPrevPrev1HasChanged &&
+    !inputsPrevPrevPrev2HasChanged &&
+    !inputsPrevPrevPrevPrev1HasChanged &&
+    !inputsPrevPrevPrevPrev2HasChanged &&
+    (lateInputsHasChanged = false);
 
   let providedBytesForPositionAndRotation = 0b00000000;
 
@@ -290,20 +347,22 @@ export const gatherStateData = (
 
   let providedValues1to8 = 0b00000000;
   providedValues9to16HasChanged && (providedValues1to8 |= 0b00000001);
-  controlsHasChanged && (providedValues1to8 |= 0b00000010);
-  fuelHasChanged && (providedValues1to8 |= 0b00000100);
+  inputs1HasChanged && (providedValues1to8 |= 0b00000010);
+  inputs2HasChanged && (providedValues1to8 |= 0b00000100);
+  lateInputsHasChanged && (providedValues1to8 |= 0b00001000);
   providedBytesForPositionAndRotationHasChanged &&
-    (providedValues1to8 |= 0b00001000);
-  xHasChanged && (providedValues1to8 |= 0b00010000);
-  yHasChanged && (providedValues1to8 |= 0b00100000);
+    (providedValues1to8 |= 0b00010000);
+  xHasChanged && (providedValues1to8 |= 0b00100000);
+  yHasChanged && (providedValues1to8 |= 0b01000000);
   rotationZHasChanged && (providedValues1to8 |= 0b10000000);
 
   let providedValues9to16 = 0b00000000;
   indexHasChanged && (providedValues9to16 |= 0b00000001);
   zHasChanged && (providedValues1to8 |= 0b00000010);
   healthHasChanged && (providedValues9to16 |= 0b00000100);
-  ordnanceChannel1HasChanged && (providedValues9to16 |= 0b00001000);
-  ordnanceChannel2HasChanged && (providedValues9to16 |= 0b00010000);
+  fuelHasChanged && (providedValues1to8 |= 0b00001000);
+  ordnanceChannel1HasChanged && (providedValues9to16 |= 0b00010000);
+  ordnanceChannel2HasChanged && (providedValues9to16 |= 0b00100000);
 
   let localOffset = 0;
 
@@ -324,7 +383,8 @@ export const gatherStateData = (
   setUint8(providedValues1to8);
   providedValues9to16HasChanged && setUint8(providedValues9to16);
   indexHasChanged && setUint8(idOverNetwork);
-  controlsHasChanged && setUint8(controls);
+
+  inputs1HasChanged && setUint8(inputs1 || 0);
   healthHasChanged && setUint8(healthByte);
   fuelHasChanged && setUint8(fuelByte);
   providedBytesForPositionAndRotationHasChanged &&
@@ -348,7 +408,7 @@ export const gatherStateData = (
     if (o) {
       o.index = index;
       o.idOverNetwork = idOverNetwork;
-      o.controls = controls;
+      o.inputs = inputs;
       o.health = healthByte;
       o.x = x;
       o.y = y;
@@ -365,7 +425,7 @@ export const gatherStateData = (
       recentStates[sequenceNumber].state[idOverNetwork] = {
         index,
         idOverNetwork,
-        controls,
+        inputs: inputs,
         health: healthByte,
         x,
         y,

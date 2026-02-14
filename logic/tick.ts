@@ -7,7 +7,7 @@ import {
   handleNewSequence,
 } from "../netcode/state";
 import { gameEventHandler } from "../service/events";
-import { checkCollisions } from "../loop/logic";
+import { checkCollisions } from "./collision";
 
 const object3d = globals.object3d;
 const axis = globals.axis;
@@ -20,7 +20,11 @@ const ticks: types.TickStateObject[][] = [];
 
 // outer array index is tickNumber
 // inner array index is idOverNetwork
-const receivedInputs: types.Inputs[][] = [];
+const receivedInputs: types.InputsWithBytes[][] = [];
+
+// outer array index is idOverNetwork
+// inner array is tickNumbers of received input
+const receivedInputTicknumbers: number[][] = [];
 
 // outer array index is tickNumber
 // inner array order is arbitrary
@@ -44,21 +48,40 @@ const initializeReceivedInputs = () => {
     receivedInputs[i] = [];
     for (let ii = 0; i < parameters.maxRemoteObjects; i++) {
       receivedInputs[i][ii] = {
-        up: undefined,
-        down: undefined,
-        left: undefined,
-        right: undefined,
-        space: undefined,
-        keyD: undefined,
-        keyF: undefined,
-        keyE: undefined,
+        inputs: {
+          up: undefined,
+          down: undefined,
+          left: undefined,
+          right: undefined,
+          space: undefined,
+          keyD: undefined,
+          keyF: undefined,
+          keyE: undefined,
+        },
+        byte1: undefined,
+        byte2: undefined,
       };
     }
   }
 };
 
+const initializeReceivedInputTicknumbers = () => {
+  receivedInputTicknumbers.length = 0;
+  for (let i = 0; i < parameters.maxRemoteObjects; i++) {
+    receivedInputTicknumbers[i] = [];
+  }
+};
+
+const resetReceivedInputTicknumbers = () => {
+  receivedInputTicknumbers.length = 0;
+  for (let i = 0; i < parameters.maxRemoteObjects; i++) {
+    receivedInputTicknumbers[i].length = 0;
+  }
+};
+
 initializeTicks();
 initializeReceivedInputs();
+initializeReceivedInputTicknumbers();
 
 const isWithinMaxRollback = (seq: number, x: number) => {
   // Compute distance backwards from seq to x in 8‑bit space
@@ -71,7 +94,7 @@ const seqLess = (a: number, b: number) => {
   return ((b - a) & 0xff) <= 127;
 };
 
-const prevSeq = (seq: number) => {
+const getPrevSeq = (seq: number) => {
   return (seq - 1) & 0xff;
 };
 
@@ -86,26 +109,30 @@ export const receiveInputData = (remoteId: string, data: types.InputsData) => {
   const sharedObject = globals.sharedObjectsById[remoteId];
   const d = data.inputs;
   const r = receivedInputs[t][sharedObject.idOverNetwork];
-  r.up = d.up;
-  r.down = d.down;
-  r.left = d.left;
-  r.right = d.right;
-  r.space = d.space;
-  r.keyD = d.keyD;
-  r.keyF = d.keyF;
-  r.keyE = d.keyE;
+  r.inputs.up = d.up;
+  r.inputs.down = d.down;
+  r.inputs.left = d.left;
+  r.inputs.right = d.right;
+  r.inputs.space = d.space;
+  r.inputs.keyD = d.keyD;
+  r.inputs.keyF = d.keyF;
+  r.inputs.keyE = d.keyE;
+  r.byte1 = data.byte1;
+  r.byte2 = data.byte2;
 
   if (seqLess(t, oldestInputTick)) {
     oldestInputTick = t;
   }
+
+  receivedInputTicknumbers[sharedObject.idOverNetwork]?.push(t);
 };
 
 const handleMovement = (
   currentTickObject: types.TickStateObject,
   previousTickObject: types.TickStateObject,
-  inputs: types.Inputs,
-  prevInputs: types.Inputs,
-  prevPrevInputs: types.Inputs
+  inputs: types.InputsWithBytes,
+  prevInputs: types.InputsWithBytes,
+  prevPrevInputs: types.InputsWithBytes
 ) => {
   const p = parameters;
   const prev = previousTickObject;
@@ -114,12 +141,15 @@ const handleMovement = (
   //
   // 1. INPUT → VELOCITY
   //
-  const up = inputs.up ?? prevInputs.up ?? prevPrevInputs.up ?? 0;
-  const down = inputs.down ?? prevInputs.down ?? prevPrevInputs.down ?? 0;
-  const left = inputs.left ?? prevInputs.left ?? prevPrevInputs.left ?? 0;
-  const right = inputs.right ?? prevInputs.right ?? prevPrevInputs.right ?? 0;
-  const keyF = inputs.keyF ?? prevInputs.keyF ?? prevPrevInputs.keyF ?? 0;
-  const keyD = inputs.keyD ?? prevInputs.keyD ?? prevPrevInputs.keyD ?? 0;
+  const cInputs = inputs.inputs;
+  const pInputs = prevInputs.inputs;
+  const ppInputs = prevPrevInputs.inputs;
+  const up = cInputs.up ?? pInputs.up ?? ppInputs.up ?? 0;
+  const down = cInputs.down ?? pInputs.down ?? ppInputs.down ?? 0;
+  const left = cInputs.left ?? pInputs.left ?? ppInputs.left ?? 0;
+  const right = cInputs.right ?? pInputs.right ?? ppInputs.right ?? 0;
+  const keyF = cInputs.keyF ?? pInputs.keyF ?? ppInputs.keyF ?? 0;
+  const keyD = cInputs.keyD ?? pInputs.keyD ?? ppInputs.keyD ?? 0;
 
   o.speed = prev.speed;
   o.speed += up * p.forceUpToSpeedFactor;
@@ -177,7 +207,7 @@ const handleShot = (
   currentTickNumber: number,
   currentTickObject: types.TickStateObject,
   previousTickObject: types.TickStateObject,
-  inputs: types.Inputs,
+  inputs: types.InputsWithBytes,
   gameEventHandler: types.GameEventHandler
 ) => {
   const c = currentTickObject;
@@ -186,7 +216,7 @@ const handleShot = (
   let delay = p.shotDelay;
   delay -= parameters.tickInterval;
   if (delay <= 0) {
-    if (inputs.space) {
+    if (inputs.inputs.space) {
       // shoot
       delay += parameters.shotDelay;
       gameEventHandler({
@@ -205,15 +235,17 @@ const handleShot = (
 };
 
 const resetInputs = (tickNum: number, idOverNetwork: number) => {
-  const inputs = receivedInputs[tickNum][idOverNetwork];
-  inputs.up = undefined;
-  inputs.down = undefined;
-  inputs.left = undefined;
-  inputs.right = undefined;
-  inputs.space = undefined;
-  inputs.keyD = undefined;
-  inputs.keyF = undefined;
-  inputs.keyE = undefined;
+  const r = receivedInputs[tickNum][idOverNetwork];
+  r.inputs.up = undefined;
+  r.inputs.down = undefined;
+  r.inputs.left = undefined;
+  r.inputs.right = undefined;
+  r.inputs.space = undefined;
+  r.inputs.keyD = undefined;
+  r.inputs.keyF = undefined;
+  r.inputs.keyE = undefined;
+  r.byte1 = undefined;
+  r.byte2 = undefined;
 };
 
 /**
@@ -230,13 +262,15 @@ const handleSharedObjects = (
   isRollback: boolean
 ) => {
   const p = parameters;
-  const currentState = ticks[tickNumber];
-  const previousState = ticks[prevSeq(tickNumber)];
-  const currentInputs = receivedInputs[tickNumber];
-  const prevInputs = receivedInputs[prevSeq(tickNumber)];
-  const prevPrevInputs = receivedInputs[prevSeq(prevSeq(tickNumber))];
+  const pSeq = getPrevSeq(tickNumber);
+  const ppSeq = getPrevSeq(pSeq);
 
-  handleLocalObjects(tickNumber);
+  const currentState = ticks[tickNumber];
+  const previousState = ticks[pSeq];
+  const currentInputs = receivedInputs[tickNumber];
+  const prevInputs = receivedInputs[pSeq];
+  const prevPrevInputs = receivedInputs[ppSeq];
+
   for (let i = 0; i < p.maxSharedObjects; i++) {
     const curStateObj = currentState[i];
     const prevStateObj = previousState[i];
@@ -266,7 +300,29 @@ const handleSharedObjects = (
         gameEventHandler
       );
       if (!isRollback) {
-        gatherStateData(i, curStateObj, tickNumber);
+        const idN = curStateObj.idOverNetwork;
+        const pppSeq = getPrevSeq(ppSeq);
+        const ppppSeq = getPrevSeq(pppSeq);
+        const oInpTicknumbers = receivedInputTicknumbers[idN];
+        const pInp = oInpTicknumbers.includes(pSeq);
+        const ppInp = oInpTicknumbers.includes(ppSeq);
+        const pppInp = oInpTicknumbers.includes(pppSeq);
+        const ppppInp = oInpTicknumbers.includes(ppppSeq);
+        const input = receivedInputs[tickNumber][idN];
+        const pInput = pInp ? receivedInputs[pSeq][idN] : undefined;
+        const ppInput = ppInp ? receivedInputs[ppSeq][idN] : undefined;
+        const pppInput = pppInp ? receivedInputs[pppSeq][idN] : undefined;
+        const ppppInput = ppppInp ? receivedInputs[ppppSeq][idN] : undefined;
+        gatherStateData(
+          i,
+          curStateObj,
+          input,
+          pInput,
+          ppInput,
+          pppInput,
+          ppppInput,
+          tickNumber
+        );
         const tickNumPastRollback = seq8Sub(tickNumber, p.maxRollback + 1);
         resetInputs(tickNumPastRollback, i);
       }
@@ -274,8 +330,8 @@ const handleSharedObjects = (
         gameEventHandler({
           type: types.EventType.HealthZero,
           data: {
+            id: curStateObj.id,
             currentState,
-            currentStateObject: curStateObj,
           },
         });
       }
@@ -286,7 +342,7 @@ const handleSharedObjects = (
 const handleLocalObjects = (tickNumber: number) => {
   const currentLocalObjects = localObjects[tickNumber];
   currentLocalObjects.length = 0;
-  const previousLocalObjects = localObjects[prevSeq(tickNumber)];
+  const previousLocalObjects = localObjects[getPrevSeq(tickNumber)];
   const indexesToRemove = [];
   for (let i = 0; i < previousLocalObjects.length; i++) {
     const previousObject = previousLocalObjects[i];
@@ -326,13 +382,14 @@ const performRollback = (
 
 const handleNewId = (id: string) => {
   const currentState = ticks[currentTick];
-  const freeObject = currentState.find((x) => !x.exists);
-  if (freeObject) {
-    const data = { id, freeObject, currentState };
-    gameEventHandler({ type: types.EventType.NewId, data });
-  } else {
-    gameEventHandler({ type: types.EventType.Queue, data: id });
-  }
+  const data = { id, currentState };
+  gameEventHandler({ type: types.EventType.NewId, data });
+};
+
+const handleRemoveId = (id: string) => {
+  const currentState = ticks[currentTick];
+  const data = { id, currentState };
+  gameEventHandler({ type: types.EventType.RemoveId, data });
 };
 
 const handleReceivedEvents = () => {
@@ -343,6 +400,7 @@ const handleReceivedEvents = () => {
         handleNewId(e.data);
         break;
       case types.ReceivedEventType.RemoveId:
+        handleRemoveId(e.data);
         break;
       default:
         break;
@@ -362,6 +420,7 @@ export const runTick = (tickNumber: number) => {
   simulate(loopId, tickNumber, false);
   handleReceivedEvents();
   sendState();
+  resetReceivedInputTicknumbers();
 };
 
 const getInitialTickStateObject = (id: number) => {

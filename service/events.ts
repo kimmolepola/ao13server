@@ -1,9 +1,10 @@
 import * as types from "../types";
 import * as globals from "../globals";
-import { insertNewObject, handleRemoveId } from "./objects";
 import { handleSendQueue } from "../netcode/queue";
 import { resetRecentStates } from "../netcode/state";
 import { handleSendBaseState } from "../netcode/baseState";
+import * as api from "../api";
+import * as parameters from "../parameters";
 
 const object3d = globals.object3d;
 const axis = globals.axis;
@@ -11,19 +12,20 @@ const axis = globals.axis;
 export const gameEventHandler = (gameEvent: types.GameEvent) => {
   switch (gameEvent.type) {
     case types.EventType.RemoveId: {
+      handleRemoveId(gameEvent.data);
       break;
     }
     case types.EventType.NewId: {
       const data = gameEvent.data;
-      resetRecentStates();
-      insertNewObject(data.id, data.freeObject);
-      handleSendBaseState(data.currentState);
-      break;
-    }
-    case types.EventType.Queue: {
-      const newId = gameEvent.data;
-      globals.queue.push(newId);
-      handleSendQueue(newId);
+      const freeObject = data.currentState.find((x) => !x.exists);
+      if (freeObject) {
+        resetRecentStates();
+        insertNewObject(data.id, freeObject);
+        handleSendBaseState(data.currentState);
+      } else {
+        globals.queue.push(data.id);
+        handleSendQueue(data.id);
+      }
       break;
     }
     case types.EventType.HealthZero: {
@@ -87,10 +89,63 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
   }
 };
 
-// case types.EventType.HealthZero: {
-//   setTimeout(() => {
-//     const obj = gameEvent.data;
-//     handleRemoveId(obj.id);
-//   }, 1000);
-//   break;
-// }
+const savePlayerData = async (currentState: types.TickStateObject[]) => {
+  const data =
+    currentState.reduce((acc: types.PlayerState[], cur) => {
+      if (cur.isPlayer) {
+        acc.push({ clientId: cur.id, score: cur.score });
+      }
+      return acc;
+    }, []) || [];
+  api.postSaveGameState(data);
+};
+
+const handleRemoveId = (data: {
+  id: string;
+  currentState: types.TickStateObject[];
+}) => {
+  const obj = data.currentState.find((x) => x.id === data.id);
+  if (obj) {
+    obj.exists = false;
+    savePlayerData(data.currentState);
+    handleSendBaseState(data.currentState);
+  }
+};
+
+const idFailure = (id: string) => {
+  console.error("Failed to add new object, id length not 32:", id);
+};
+
+const dataFailure = (id: string) => {
+  console.error("Failed to add new object, no initialGameObject. Id: ", id);
+};
+
+const insertNewObject = async (
+  id: string,
+  freeObject: types.TickStateObject
+) => {
+  if (id.length !== 32) return idFailure(id);
+
+  const { data } = await api.getGameObject(id);
+  if (!data) return dataFailure(id);
+
+  const o = freeObject;
+  o.exists = true;
+  o.currentLoopId = -1;
+  o.score = data.score || 0;
+  o.isPlayer = data.isPlayer || false;
+  o.username = data.username = "";
+  o.id = id;
+  o.type = types.GameObjectType.Fighter as const;
+  o.speed = parameters.initialSpeed;
+  o.fuel = parameters.maxFuelKg;
+  o.bullets = 480;
+  o.rotationSpeed = 0;
+  o.verticalSpeed = 0;
+  o.x = 0;
+  o.y = 0;
+  o.z = 1000;
+  o.shotDelay = 0;
+  o.health = 100;
+  o.rotationZ = 0;
+};

@@ -5,7 +5,7 @@ import {
   onReceiveString,
   onReceiveInputs,
   onReceiveAck,
-} from "./service/service";
+} from "./service/channels";
 import * as globals from "./globals";
 import * as utils from "./utils";
 

@@ -1,5 +1,57 @@
+import { DataChannel } from "node-datachannel";
 import * as types from "../types";
 import * as globals from "../globals";
+import { receiveInputData } from "../logic/tick";
+import { decodeControls } from "../netcode/controls";
+import { handleReceiveAck } from "../netcode/ack";
+import { receiveAck } from "../netcode/state";
+
+export const onReceiveString = (
+  msg: string | ArrayBuffer | Buffer<ArrayBufferLike>,
+  clientId: string,
+  dc: DataChannel
+) => {
+  if (msg === "ping") {
+    dc.sendMessage("pong");
+    return;
+  }
+  const data: types.ClientStringData = JSON.parse(msg as string);
+
+  switch (data.type) {
+    case types.ClientStringDataType.ChatMessage_Client: {
+      const message = {
+        id: clientId + Date.now().toString(),
+        text: data.text,
+        userId: clientId,
+        username:
+          globals.sharedObjects.find((x) => x.id === clientId)?.username || "",
+      };
+      sendReliableString({
+        ...message,
+        type: types.ServerStringDataType.ChatMessage_Server,
+      });
+      break;
+    }
+    default:
+      break;
+  }
+};
+
+export const onReceiveInputs = (
+  msg: string | ArrayBuffer | Buffer<ArrayBufferLike>,
+  clientId: string
+) => {
+  const data = decodeControls(msg);
+  receiveInputData(clientId, data);
+};
+
+export const onReceiveAck = (
+  msg: string | ArrayBuffer | Buffer<ArrayBufferLike>,
+  clientId: string
+) => {
+  const sequenceNumber = handleReceiveAck(msg);
+  receiveAck(sequenceNumber, clientId);
+};
 
 export const sendReliableStringSingleClient = (
   id: string,
