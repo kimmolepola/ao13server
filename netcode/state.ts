@@ -9,7 +9,6 @@ let buffer = new ArrayBuffer(sequenceNumberBytes);
 let view = new DataView(buffer);
 let previousObjectCount = 0;
 let offset = 0;
-// let sequenceNumber = 0;
 
 const recentStates: types.RecentStates = {
   0: { acknowledged: false, state: {} },
@@ -171,29 +170,6 @@ const encodeOrdnance = (
   out.byte1 = byte1;
   out.byte2 = byte2;
   out.fitsInOneByte = false;
-};
-
-const inputsToByte = (objectInputs: types.Inputs) => {
-  const ____ctrlsUp = objectInputs.up;
-  const __ctrlsDown = objectInputs.down;
-  const __ctrlsLeft = objectInputs.left;
-  const _ctrlsRight = objectInputs.right;
-  const _ctrlsSpace = objectInputs.space;
-  const _____ctrlsD = objectInputs.keyD;
-  const _____ctrlsF = objectInputs.keyF;
-  const _____ctrlsE = objectInputs.keyE;
-
-  let inputs = 0b00000000;
-  ____ctrlsUp && (inputs |= 0b00000001);
-  __ctrlsDown && (inputs |= 0b00000010);
-  __ctrlsLeft && (inputs |= 0b00000100);
-  _ctrlsRight && (inputs |= 0b00001000);
-  _ctrlsSpace && (inputs |= 0b00010000);
-  _____ctrlsD && (inputs |= 0b00100000);
-  _____ctrlsF && (inputs |= 0b01000000);
-  _____ctrlsE && (inputs |= 0b10000000);
-
-  return inputs;
 };
 
 export const gatherStateData = (
@@ -383,8 +359,21 @@ export const gatherStateData = (
   setUint8(providedValues1to8);
   providedValues9to16HasChanged && setUint8(providedValues9to16);
   indexHasChanged && setUint8(idOverNetwork);
-
   inputs1HasChanged && setUint8(inputs1 || 0);
+  inputs2HasChanged && setUint8(inputs2 || 0);
+  if (lateInputsHasChanged) {
+    let byte = 0b00000000;
+    inputsPrev1HasChanged && (byte |= 0b00000001);
+    inputsPrev2HasChanged && (byte |= 0b00000010);
+    inputsPrevPrev1HasChanged && (byte |= 0b00000100);
+    inputsPrevPrev2HasChanged && (byte |= 0b00001000);
+    inputsPrevPrevPrev1HasChanged && (byte |= 0b00010000);
+    inputsPrevPrevPrev2HasChanged && (byte |= 0b00100000);
+    inputsPrevPrevPrevPrev1HasChanged && (byte |= 0b01000000);
+    inputsPrevPrevPrevPrev2HasChanged && (byte |= 0b10000000);
+    setUint8(byte);
+  }
+
   healthHasChanged && setUint8(healthByte);
   fuelHasChanged && setUint8(fuelByte);
   providedBytesForPositionAndRotationHasChanged &&
@@ -401,6 +390,15 @@ export const gatherStateData = (
   ordnanceChannel2HasChanged &&
     !ordnanceChannel2.fitsInOneByte &&
     setUint8(ordnanceChannel2.byte2);
+  inputsPrev1HasChanged && setUint8(inputsPrev1 || 0);
+  inputsPrev2HasChanged && setUint8(inputsPrev2 || 0);
+  inputsPrevPrev1HasChanged && setUint8(inputsPrevPrev1 || 0);
+  inputsPrevPrev2HasChanged && setUint8(inputsPrevPrev2 || 0);
+  inputsPrevPrevPrev1HasChanged && setUint8(inputsPrevPrevPrev1 || 0);
+  inputsPrevPrevPrev2HasChanged && setUint8(inputsPrevPrevPrev2 || 0);
+  inputsPrevPrevPrevPrev1HasChanged && setUint8(inputsPrevPrevPrevPrev1 || 0);
+  inputsPrevPrevPrevPrev2HasChanged && setUint8(inputsPrevPrevPrevPrev2 || 0);
+
   offset += localOffset;
 
   if (shouldAddToRecentStates(sequenceNumber)) {
@@ -408,7 +406,7 @@ export const gatherStateData = (
     if (o) {
       o.index = index;
       o.idOverNetwork = idOverNetwork;
-      o.inputs = inputs;
+      o.inputs1 = inputs1;
       o.health = healthByte;
       o.x = x;
       o.y = y;
@@ -425,7 +423,16 @@ export const gatherStateData = (
       recentStates[sequenceNumber].state[idOverNetwork] = {
         index,
         idOverNetwork,
-        inputs: inputs,
+        inputs1: inputs1,
+        inputs2: inputs2,
+        inputsPrev1: inputsPrev1,
+        inputsPrev2: inputsPrev2,
+        inputsPrevPrev1: inputsPrevPrev1,
+        inputsPrevPrev2: inputsPrevPrev2,
+        inputsPrevPrevPrev1: inputsPrevPrevPrev1,
+        inputsPrevPrevPrev2: inputsPrevPrevPrev2,
+        inputsPrevPrevPrevPrev1: inputsPrevPrevPrevPrev1,
+        inputsPrevPrevPrevPrev2: inputsPrevPrevPrevPrev2,
         health: healthByte,
         x,
         y,

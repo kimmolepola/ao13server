@@ -59,16 +59,16 @@ export type RecentStates = {
         | {
             index: number;
             idOverNetwork: number;
-            inputs1: number;
-            inputs2: number;
-            inputsPrev1: number;
-            inputsPrev2: number;
-            inputsPrevPrev1: number;
-            inputsPrevPrev2: number;
-            inputsPrevPrevPrev1: number;
-            inputsPrevPrevPrev2: number;
-            inputsPrevPrevPrevPrev1: number;
-            inputsPrevPrevPrevPrev2: number;
+            inputs1: number | undefined;
+            inputs2: number | undefined;
+            inputsPrev1: number | undefined;
+            inputsPrev2: number | undefined;
+            inputsPrevPrev1: number | undefined;
+            inputsPrevPrev2: number | undefined;
+            inputsPrevPrevPrev1: number | undefined;
+            inputsPrevPrevPrev2: number | undefined;
+            inputsPrevPrevPrevPrev1: number | undefined;
+            inputsPrevPrevPrevPrev2: number | undefined;
             health: number;
             providedBytesForPositionAndRotation: number;
             x: number;
