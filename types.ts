@@ -19,7 +19,6 @@ export type ReceivedInputs = {
 
 export type TickStateObject = GameObject & {
   exists: boolean;
-  currentLoopId: number;
   idOverNetwork: number;
   isPlayer: boolean;
   username: string;
@@ -36,6 +35,8 @@ export type TickStateObject = GameObject & {
   shotDelay: number;
   fuel: number;
   bullets: number;
+  ordnance1Event: boolean;
+  ordnance2Event: boolean;
 };
 
 export type TickLocalObject = {
@@ -61,14 +62,7 @@ export type RecentStates = {
             idOverNetwork: number;
             inputs1: number | undefined;
             inputs2: number | undefined;
-            inputsPrev1: number | undefined;
-            inputsPrev2: number | undefined;
-            inputsPrevPrev1: number | undefined;
-            inputsPrevPrev2: number | undefined;
-            inputsPrevPrevPrev1: number | undefined;
-            inputsPrevPrevPrev2: number | undefined;
-            inputsPrevPrevPrevPrev1: number | undefined;
-            inputsPrevPrevPrevPrev2: number | undefined;
+            eventsEncoded: number;
             health: number;
             providedBytesForPositionAndRotation: number;
             x: number;
@@ -308,7 +302,7 @@ export const unreliableStateSingleObjectMaxBytes = 23;
 //       1: values9to16IsProvided                                                             |
 //       2: inputs1                                                                           |
 //       3: inputs2                                                                           |
-//       4: lateInputs                                                                        |
+//       4: events                                                                            |
 //       5: providedBytesForPositionAndRotation                                               |
 //       6: positionX                                                                         |
 //       7: positionY                                                                         |
@@ -325,15 +319,15 @@ export const unreliableStateSingleObjectMaxBytes = 23;
 //     Uint8 idOverNetwork?                                                                   3
 //     Uint8 inputs1? (1&2:up 3&4:down 5&6:left 7&8:right)                                    4
 //     Uint8 inputs2? (1&2:space 3&4:keyD 5&6:keyF 7&8:keyE)                                  5
-//     Uint8 lateInputs?                                                                      6
-//       1: prev1                                                                             |
-//       2: prev2                                                                             |
-//       3: prevPrev1                                                                         |
-//       4: prevPrev2                                                                         |
-//       5: prevPrevPrev1                                                                     |
-//       6: prevPrevPrev2                                                                     |
-//       7: prevPrevPrevPrev1                                                                 |
-//       8: prevPrevPrevPrev2                                                                 |
+//     Uint8 events?                                                                          6
+//       1: pOrdnance1Event                                                                   |
+//       2: ppOrdnance1Event                                                                  |
+//       3: pppOrdnance1Event                                                                 |
+//       4: ppppOrdnance1Event                                                                |
+//       5: pOrdnance2Event                                                                   |
+//       6: ppOrdnance2Event                                                                  |
+//       7: pppOrdnance2Event                                                                 |
+//       8: ppppOrdnance2Event                                                                |
 //     Uint8 health?                                                                          7
 //     Uint8 fuel?                                                                            8
 //     Uint8 providedBytesForPositionAndRotation? (6 bits in use)                             9
@@ -393,14 +387,6 @@ export const unreliableStateSingleObjectMaxBytes = 23;
 //       6: value part 10                                                                     |
 //       7: value part 11                                                                     |
 //       8: value part 12 (12 bit max value 4095)                                             |
-//     Uint8 lateInputsPrev1 (seqNum - 1) (1&2:up 3&4:down 5&6:left 7&8:right)                26
-//     Uint8 lateInputsPrev2 (seqNum - 1) (1&2:up 3&4:down 5&6:left 7&8:right)                27
-//     Uint8 lateInputsPrevPrev1 (seqNum - 2) (1&2:up 3&4:down 5&6:left 7&8:right)            28
-//     Uint8 lateInputsPrevPrev2 (seqNum - 2) (1&2:up 3&4:down 5&6:left 7&8:right)            29
-//     Uint8 lateInputsPrevPrevPrev1 (seqNum - 3) (1&2:up 3&4:down 5&6:left 7&8:right)        30
-//     Uint8 lateInputsPrevPrevPrev2 (seqNum - 3) (1&2:up 3&4:down 5&6:left 7&8:right)        31
-//     Uint8 lateInputsPrevPrevPrevPrev1 (seqNum - 4) (1&2:up 3&4:down 5&6:left 7&8:right)    32
-//     Uint8 lateInputsPrevPrevPrevPrev2 (seqNum - 4) (1&2:up 3&4:down 5&6:left 7&8:right)    33
 //   ]
 // ]
 

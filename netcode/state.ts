@@ -176,10 +176,7 @@ export const gatherStateData = (
   index: number,
   tickStateObject: types.TickStateObject,
   objectInputs: types.InputsWithBytes,
-  objectInputsPrev: types.InputsWithBytes | undefined,
-  objectInputsPrevPrev: types.InputsWithBytes | undefined,
-  objectInputsPrevPrevPrev: types.InputsWithBytes | undefined,
-  objectInputsPrevPrevPrevPrev: types.InputsWithBytes | undefined,
+  eventsEncoded: number,
   sequenceNumber: number
 ) => {
   const o = tickStateObject;
@@ -192,14 +189,6 @@ export const gatherStateData = (
 
   const inputs1 = objectInputs.byte1;
   const inputs2 = objectInputs.byte2;
-  const inputsPrev1 = objectInputsPrev?.byte1;
-  const inputsPrev2 = objectInputsPrev?.byte2;
-  const inputsPrevPrev1 = objectInputsPrevPrev?.byte1;
-  const inputsPrevPrev2 = objectInputsPrevPrev?.byte2;
-  const inputsPrevPrevPrev1 = objectInputsPrevPrevPrev?.byte1;
-  const inputsPrevPrevPrev2 = objectInputsPrevPrevPrev?.byte2;
-  const inputsPrevPrevPrevPrev1 = objectInputsPrevPrevPrevPrev?.byte1;
-  const inputsPrevPrevPrevPrev2 = objectInputsPrevPrevPrevPrev?.byte2;
 
   const healthByte = o.health & 0xff;
   const fuelByte = (o.fuel * parameters.fuelToNetworkRatio) & 0xff;
@@ -212,15 +201,7 @@ export const gatherStateData = (
   let indexHasChanged = true;
   let inputs1HasChanged = true;
   let inputs2HasChanged = true;
-  let lateInputsHasChanged = true;
-  let inputsPrev1HasChanged = true;
-  let inputsPrev2HasChanged = true;
-  let inputsPrevPrev1HasChanged = true;
-  let inputsPrevPrev2HasChanged = true;
-  let inputsPrevPrevPrev1HasChanged = true;
-  let inputsPrevPrevPrev2HasChanged = true;
-  let inputsPrevPrevPrevPrev1HasChanged = true;
-  let inputsPrevPrevPrevPrev2HasChanged = true;
+  let eventsHasChanged = true;
   let healthHasChanged = true;
   let xHasChanged = true;
   let yHasChanged = true;
@@ -242,21 +223,7 @@ export const gatherStateData = (
     index === oState.index && (indexHasChanged = false);
     inputs1 === oState.inputs1 && (inputs1HasChanged = false);
     inputs2 === oState.inputs2 && (inputs2HasChanged = false);
-    inputsPrev1 === oState.inputsPrev1 && (inputsPrev1HasChanged = false);
-    inputsPrev2 === oState.inputsPrev2 && (inputsPrev2HasChanged = false);
-    inputsPrevPrev1 === oState.inputsPrevPrev1 &&
-      (inputsPrevPrev1HasChanged = false);
-    inputsPrevPrev2 === oState.inputsPrevPrev2 &&
-      (inputsPrevPrev2HasChanged = false);
-    inputsPrevPrevPrev1 === oState.inputsPrevPrevPrev1 &&
-      (inputsPrevPrevPrev1HasChanged = false);
-    inputsPrevPrevPrev2 === oState.inputsPrevPrevPrev2 &&
-      (inputsPrevPrevPrev2HasChanged = false);
-    inputsPrevPrevPrevPrev1 === oState.inputsPrevPrevPrevPrev1 &&
-      (inputsPrevPrevPrevPrev1HasChanged = false);
-    inputsPrevPrevPrevPrev2 === oState.inputsPrevPrevPrevPrev2 &&
-      (inputsPrevPrevPrevPrev2HasChanged = false);
-
+    eventsEncoded === oState.eventsEncoded && (eventsHasChanged = false);
     healthByte === oState.health && (healthHasChanged = false);
     const oXBytes = getUint8Bytes(oState.x);
     xDifferenceSignificance = getDifferenceSignificance(xBytes, oXBytes);
@@ -286,15 +253,6 @@ export const gatherStateData = (
     !ordnanceChannel1HasChanged &&
     !ordnanceChannel2HasChanged &&
     (providedValues9to16HasChanged = false);
-  !inputsPrev1HasChanged &&
-    !inputsPrev2HasChanged &&
-    !inputsPrevPrev1HasChanged &&
-    !inputsPrevPrev2HasChanged &&
-    !inputsPrevPrevPrev1HasChanged &&
-    !inputsPrevPrevPrev2HasChanged &&
-    !inputsPrevPrevPrevPrev1HasChanged &&
-    !inputsPrevPrevPrevPrev2HasChanged &&
-    (lateInputsHasChanged = false);
 
   let providedBytesForPositionAndRotation = 0b00000000;
 
@@ -325,7 +283,7 @@ export const gatherStateData = (
   providedValues9to16HasChanged && (providedValues1to8 |= 0b00000001);
   inputs1HasChanged && (providedValues1to8 |= 0b00000010);
   inputs2HasChanged && (providedValues1to8 |= 0b00000100);
-  lateInputsHasChanged && (providedValues1to8 |= 0b00001000);
+  eventsHasChanged && (providedValues1to8 |= 0b00001000);
   providedBytesForPositionAndRotationHasChanged &&
     (providedValues1to8 |= 0b00010000);
   xHasChanged && (providedValues1to8 |= 0b00100000);
@@ -361,17 +319,8 @@ export const gatherStateData = (
   indexHasChanged && setUint8(idOverNetwork);
   inputs1HasChanged && setUint8(inputs1 || 0);
   inputs2HasChanged && setUint8(inputs2 || 0);
-  if (lateInputsHasChanged) {
-    let byte = 0b00000000;
-    inputsPrev1HasChanged && (byte |= 0b00000001);
-    inputsPrev2HasChanged && (byte |= 0b00000010);
-    inputsPrevPrev1HasChanged && (byte |= 0b00000100);
-    inputsPrevPrev2HasChanged && (byte |= 0b00001000);
-    inputsPrevPrevPrev1HasChanged && (byte |= 0b00010000);
-    inputsPrevPrevPrev2HasChanged && (byte |= 0b00100000);
-    inputsPrevPrevPrevPrev1HasChanged && (byte |= 0b01000000);
-    inputsPrevPrevPrevPrev2HasChanged && (byte |= 0b10000000);
-    setUint8(byte);
+  if (eventsHasChanged) {
+    setUint8(eventsEncoded);
   }
 
   healthHasChanged && setUint8(healthByte);
@@ -390,14 +339,6 @@ export const gatherStateData = (
   ordnanceChannel2HasChanged &&
     !ordnanceChannel2.fitsInOneByte &&
     setUint8(ordnanceChannel2.byte2);
-  inputsPrev1HasChanged && setUint8(inputsPrev1 || 0);
-  inputsPrev2HasChanged && setUint8(inputsPrev2 || 0);
-  inputsPrevPrev1HasChanged && setUint8(inputsPrevPrev1 || 0);
-  inputsPrevPrev2HasChanged && setUint8(inputsPrevPrev2 || 0);
-  inputsPrevPrevPrev1HasChanged && setUint8(inputsPrevPrevPrev1 || 0);
-  inputsPrevPrevPrev2HasChanged && setUint8(inputsPrevPrevPrev2 || 0);
-  inputsPrevPrevPrevPrev1HasChanged && setUint8(inputsPrevPrevPrevPrev1 || 0);
-  inputsPrevPrevPrevPrev2HasChanged && setUint8(inputsPrevPrevPrevPrev2 || 0);
 
   offset += localOffset;
 
@@ -425,14 +366,7 @@ export const gatherStateData = (
         idOverNetwork,
         inputs1: inputs1,
         inputs2: inputs2,
-        inputsPrev1: inputsPrev1,
-        inputsPrev2: inputsPrev2,
-        inputsPrevPrev1: inputsPrevPrev1,
-        inputsPrevPrev2: inputsPrevPrev2,
-        inputsPrevPrevPrev1: inputsPrevPrevPrev1,
-        inputsPrevPrevPrev2: inputsPrevPrevPrev2,
-        inputsPrevPrevPrevPrev1: inputsPrevPrevPrevPrev1,
-        inputsPrevPrevPrevPrev2: inputsPrevPrevPrevPrev2,
+        eventsEncoded,
         health: healthByte,
         x,
         y,

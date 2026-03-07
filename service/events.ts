@@ -131,7 +131,6 @@ const insertNewObject = async (
 
   const o = freeObject;
   o.exists = true;
-  o.currentLoopId = -1;
   o.score = data.score || 0;
   o.isPlayer = data.isPlayer || false;
   o.username = data.username = "";

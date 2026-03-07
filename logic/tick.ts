@@ -24,7 +24,7 @@ const receivedInputs: types.InputsWithBytes[][] = [];
 
 // outer array index is idOverNetwork
 // inner array is tickNumbers of received input
-const receivedInputTicknumbers: number[][] = [];
+// const receivedInputTicknumbers: number[][] = [];
 
 // outer array index is tickNumber
 // inner array order is arbitrary
@@ -65,23 +65,23 @@ const initializeReceivedInputs = () => {
   }
 };
 
-const initializeReceivedInputTicknumbers = () => {
-  receivedInputTicknumbers.length = 0;
-  for (let i = 0; i < parameters.maxRemoteObjects; i++) {
-    receivedInputTicknumbers[i] = [];
-  }
-};
+// const initializeReceivedInputTicknumbers = () => {
+//   receivedInputTicknumbers.length = 0;
+//   for (let i = 0; i < parameters.maxRemoteObjects; i++) {
+//     receivedInputTicknumbers[i] = [];
+//   }
+// };
 
-const resetReceivedInputTicknumbers = () => {
-  receivedInputTicknumbers.length = 0;
-  for (let i = 0; i < parameters.maxRemoteObjects; i++) {
-    receivedInputTicknumbers[i].length = 0;
-  }
-};
+// const resetReceivedInputTicknumbers = () => {
+//   receivedInputTicknumbers.length = 0;
+//   for (let i = 0; i < parameters.maxRemoteObjects; i++) {
+//     receivedInputTicknumbers[i].length = 0;
+//   }
+// };
 
 initializeTicks();
 initializeReceivedInputs();
-initializeReceivedInputTicknumbers();
+// initializeReceivedInputTicknumbers();
 
 const isWithinMaxRollback = (seq: number, x: number) => {
   // Compute distance backwards from seq to x in 8‑bit space
@@ -124,7 +124,7 @@ export const receiveInputData = (remoteId: string, data: types.InputsData) => {
     oldestInputTick = t;
   }
 
-  receivedInputTicknumbers[sharedObject.idOverNetwork]?.push(t);
+  // receivedInputTicknumbers[sharedObject.idOverNetwork]?.push(t);
 };
 
 const handleMovement = (
@@ -213,12 +213,14 @@ const handleShot = (
   const c = currentTickObject;
   const p = previousTickObject;
 
+  c.ordnance1Event = false;
   let delay = p.shotDelay;
   delay -= parameters.tickInterval;
   if (delay <= 0) {
     if (inputs.inputs.space) {
       // shoot
       delay += parameters.shotDelay;
+      c.ordnance1Event = true;
       gameEventHandler({
         type: types.EventType.Shot,
         data: {
@@ -256,11 +258,7 @@ export function seq8Sub(seq: number, value: number): number {
   return (seq - value) & 0xff;
 }
 
-const handleSharedObjects = (
-  loopId: number,
-  tickNumber: number,
-  isRollback: boolean
-) => {
+const handleSharedObjects = (tickNumber: number, isRollback: boolean) => {
   const p = parameters;
   const pSeq = getPrevSeq(tickNumber);
   const ppSeq = getPrevSeq(pSeq);
@@ -276,7 +274,6 @@ const handleSharedObjects = (
     const prevStateObj = previousState[i];
     const playerCurInputs = currentInputs[i];
     if (prevStateObj.exists) {
-      curStateObj.currentLoopId = loopId;
       curStateObj.exists = true;
       handleMovement(
         curStateObj,
@@ -293,7 +290,7 @@ const handleSharedObjects = (
         gameEventHandler
       );
       checkCollisions(
-        loopId,
+        i,
         curStateObj,
         currentState,
         localObjects[tickNumber],
@@ -301,28 +298,30 @@ const handleSharedObjects = (
       );
       if (!isRollback) {
         const idN = curStateObj.idOverNetwork;
+        const input = receivedInputs[tickNumber][idN];
+
         const pppSeq = getPrevSeq(ppSeq);
         const ppppSeq = getPrevSeq(pppSeq);
-        const oInpTicknumbers = receivedInputTicknumbers[idN];
-        const pInp = oInpTicknumbers.includes(pSeq);
-        const ppInp = oInpTicknumbers.includes(ppSeq);
-        const pppInp = oInpTicknumbers.includes(pppSeq);
-        const ppppInp = oInpTicknumbers.includes(ppppSeq);
-        const input = receivedInputs[tickNumber][idN];
-        const pInput = pInp ? receivedInputs[pSeq][idN] : undefined;
-        const ppInput = ppInp ? receivedInputs[ppSeq][idN] : undefined;
-        const pppInput = pppInp ? receivedInputs[pppSeq][idN] : undefined;
-        const ppppInput = ppppInp ? receivedInputs[ppppSeq][idN] : undefined;
-        gatherStateData(
-          i,
-          curStateObj,
-          input,
-          pInput,
-          ppInput,
-          pppInput,
-          ppppInput,
-          tickNumber
-        );
+        const pOrdnance1Event = ticks[pSeq][i].ordnance1Event;
+        const ppOrdnance1Event = ticks[ppSeq][i].ordnance1Event;
+        const pppOrdnance1Event = ticks[pppSeq][i].ordnance1Event;
+        const ppppOrdnance1Event = ticks[ppppSeq][i].ordnance1Event;
+        const pOrdnance2Event = ticks[pSeq][i].ordnance2Event;
+        const ppOrdnance2Event = ticks[ppSeq][i].ordnance2Event;
+        const pppOrdnance2Event = ticks[pppSeq][i].ordnance2Event;
+        const ppppOrdnance2Event = ticks[ppppSeq][i].ordnance2Event;
+
+        let eventsEncoded = 0b00000000;
+        pOrdnance1Event && eventsEncoded | 0b00000001;
+        ppOrdnance1Event && eventsEncoded | 0b00000010;
+        pppOrdnance1Event && eventsEncoded | 0b00000100;
+        ppppOrdnance1Event && eventsEncoded | 0b00001000;
+        pOrdnance2Event && eventsEncoded | 0b00010000;
+        ppOrdnance2Event && eventsEncoded | 0b00100000;
+        pppOrdnance2Event && eventsEncoded | 0b01000000;
+        ppppOrdnance2Event && eventsEncoded | 0b10000000;
+
+        gatherStateData(i, curStateObj, input, eventsEncoded, tickNumber);
         const tickNumPastRollback = seq8Sub(tickNumber, p.maxRollback + 1);
         resetInputs(tickNumPastRollback, i);
       }
@@ -362,20 +361,16 @@ const handleLocalObjects = (tickNumber: number) => {
   }
 };
 
-const simulate = (loopId: number, tickNumber: number, isRollback: boolean) => {
+const simulate = (tickNumber: number, isRollback: boolean) => {
   handleLocalObjects(tickNumber);
-  handleSharedObjects(loopId, tickNumber, isRollback);
+  handleSharedObjects(tickNumber, isRollback);
 };
 
-const performRollback = (
-  loopId: number,
-  tickNumber: number,
-  oldestInputTick: number
-) => {
+const performRollback = (tickNumber: number, oldestInputTick: number) => {
   let s = oldestInputTick;
   while (true) {
     if (s === tickNumber) break;
-    simulate(loopId, s, true);
+    simulate(s, true);
     s = (s + 1) & 0xff; // wrap to 0–255
   }
 };
@@ -411,22 +406,20 @@ const handleReceivedEvents = () => {
 const tickBuffer = new Uint8Array(1);
 export const runTick = (tickNumber: number) => {
   tickNumber === 1 && tickBuffer[0]++;
-  const loopId = (tickBuffer[0] + 1) * tickNumber;
   currentTick = tickNumber;
   handleNewSequence(tickNumber);
   if (seqLess(oldestInputTick, tickNumber)) {
-    performRollback(loopId, tickNumber, oldestInputTick);
+    performRollback(tickNumber, oldestInputTick);
   }
-  simulate(loopId, tickNumber, false);
+  simulate(tickNumber, false);
   handleReceivedEvents();
   sendState();
-  resetReceivedInputTicknumbers();
+  // resetReceivedInputTicknumbers();
 };
 
 const getInitialTickStateObject = (id: number) => {
   const obj: types.TickStateObject = {
     exists: false,
-    currentLoopId: -1,
     id: "",
     idOverNetwork: id,
     isPlayer: false,
@@ -444,6 +437,8 @@ const getInitialTickStateObject = (id: number) => {
     shotDelay: 0,
     fuel: 0,
     bullets: 0,
+    ordnance1Event: false,
+    ordnance2Event: false,
   };
   return obj;
 };

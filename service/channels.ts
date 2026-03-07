@@ -2,7 +2,7 @@ import { DataChannel } from "node-datachannel";
 import * as types from "../types";
 import * as globals from "../globals";
 import { receiveInputData } from "../logic/tick";
-import { decodeControls } from "../netcode/controls";
+import { decodeInputs } from "../netcode/inputs";
 import { handleReceiveAck } from "../netcode/ack";
 import { receiveAck } from "../netcode/state";
 
@@ -41,7 +41,7 @@ export const onReceiveInputs = (
   msg: string | ArrayBuffer | Buffer<ArrayBufferLike>,
   clientId: string
 ) => {
-  const data = decodeControls(msg);
+  const data = decodeInputs(msg);
   receiveInputData(clientId, data);
 };
 

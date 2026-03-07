@@ -27,7 +27,7 @@ function get2BitValueFromBufferBE(
   return ((value16 >> pos) & 0b11) as types.Count60FPSWithin20FPS;
 }
 
-export const decodeControls = (
+export const decodeInputs = (
   msg: string | ArrayBuffer | Buffer<ArrayBufferLike>
 ) => {
   const buffer = msg as Buffer<ArrayBufferLike>;

@@ -46,7 +46,7 @@ const isCollidingPlane = (
 };
 
 export const checkCollisions = (
-  loopId: number,
+  objIndex: number, // idOverNetwork
   gameObject: types.TickStateObject,
   sharedObjects: types.TickStateObject[],
   localObjects: types.TickLocalObject[],
@@ -74,12 +74,11 @@ export const checkCollisions = (
     }
   }
 
-  for (let i = sharedObjects.length - 1; i > -1; i--) {
+  for (let i = 0; i < objIndex; i++) {
     const sharedGameObject = sharedObjects[i];
     if (
       sharedGameObject !== gameObject &&
       sharedGameObject.exists &&
-      sharedGameObject.currentLoopId === loopId &&
       isColliding(x, y, z, sharedGameObject, parameters.collisionMaxDistance)
     ) {
       gameEventHandler({
