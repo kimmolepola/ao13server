@@ -5,9 +5,12 @@ import { resetRecentStates } from "../netcode/state";
 import { handleSendBaseState } from "../netcode/baseState";
 import * as api from "../api";
 import * as parameters from "../parameters";
+import * as utils from "../utils";
 
-const object3d = globals.object3d;
-const axis = globals.axis;
+const object3d = utils.object3d;
+const axis = utils.AXIS_Z;
+
+const bulletTickToLive = parameters.bulletTimeToLive / parameters.tickInterval;
 
 export const gameEventHandler = (gameEvent: types.GameEvent) => {
   switch (gameEvent.type) {
@@ -52,7 +55,7 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
           z: o.z,
           rotationZ: o.rotationZ,
           speed: o.speed,
-          timeToLive: 1500,
+          timeToLive: bulletTickToLive,
           originId: o.idOverNetwork,
         };
         o.bullets -= Math.min(o.bullets, 1);

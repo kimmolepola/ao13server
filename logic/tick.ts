@@ -8,9 +8,10 @@ import {
 } from "../netcode/state";
 import { gameEventHandler } from "../service/events";
 import { checkCollisions } from "./collision";
+import * as utils from "../utils";
 
-const object3d = globals.object3d;
-const axis = globals.axis;
+const object3d = utils.object3d;
+const axis = utils.AXIS_Z;
 let currentTick = 0;
 let oldestInputTick = 0;
 
