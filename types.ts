@@ -59,17 +59,22 @@ export type RecentStates = {
       [idOverNetwork: number]:
         | {
             index: number;
-            idOverNetwork: number;
+            // info byte 1
             inputs1: number | undefined;
-            inputs2: number | undefined;
-            eventsEncoded: number;
-            health: number;
-            providedBytesForPositionAndRotation: number;
             x: number;
             y: number;
-            z: number;
             rotationZ: number;
+            rotationSpeed: number;
+            // info byte 2
+            idOverNetwork: number;
+            speed: number;
+            eventsEncoded: number;
+            health: number;
             fuel: number;
+            // info byte 3
+            inputs2: number | undefined;
+            verticalSpeed: number;
+            z: number;
             ordnanceChannel1: { byte1: number; byte2: number };
             ordnanceChannel2: { byte1: number; byte2: number };
           }
@@ -292,34 +297,58 @@ export type Clients = {
   array: Client[];
 };
 
-export const unreliableStateSingleObjectMaxBytes = 23;
+export const unreliableStateSingleObjectMaxBytes = 29;
 
-// State shape (1 + n * 1-25 bytes)
+// State shape (1 + n * 1-29 bytes)
 // [
 //   Uint8 sequence number (1 byte)
-//   ...game object data (1-25 bytes each): [                                                 bytes cumulative max
+//   ...game object data (1-29 bytes each): [                                                 bytes cumulative max
 //     Uint8 providedValues1to8                                                               1
-//       1: values9to16IsProvided                                                             |
+//       1: providedValues9to16 (true if non-zero, not compared to recent state)              |
 //       2: inputs1                                                                           |
-//       3: inputs2                                                                           |
-//       4: events                                                                            |
-//       5: providedBytesForPositionAndRotation                                               |
-//       6: positionX                                                                         |
-//       7: positionY                                                                         |
-//       8: rotationZ                                                                         |
+//       3: providedBytesPositionX                                                            |
+//       4: providedBytesPositionX                                                            |
+//          [00]: 0 bytes                                                                     |
+//          [01]: 1 byte                                                                      |
+//          [10]: 2 bytes                                                                     |
+//          [11]: 4 bytes                                                                     |
+//       5: providedBytesPositionY                                                            |
+//       6: providedBytesPositionY                                                            |
+//          [00]: 0 bytes                                                                     |
+//          [01]: 1 byte                                                                      |
+//          [10]: 2 bytes                                                                     |
+//          [11]: 4 bytes                                                                     |
+//       7: rotationZ                                                                         |
+//       8: rotationSpeed                                                                     |
 //     Uint8 providedValues9to16                                                              2
-//       1: idOverNetwork                                                                     |
-//       2: positionZ                                                                         |
-//       3: health                                                                            |
-//       4: fuel                                                                              |
-//       5: ordnanceChannel1                                                                  |
-//       6: ordnanceChannel2                                                                  |
+//       1: providedValues17to24 (true if non-zero, not compared to recent state)             |
+//       2: idOverNetwork                                                                     |
+//       3: speed                                                                             |
+//       4: events                                                                            |
+//       5: health                                                                            |
+//       6: fuel                                                                              |
 //       7:                                                                                   |
 //       8:                                                                                   |
-//     Uint8 idOverNetwork?                                                                   3
-//     Uint8 inputs1? (1&2:up 3&4:down 5&6:left 7&8:right)                                    4
-//     Uint8 inputs2? (1&2:space 3&4:keyD 5&6:keyF 7&8:keyE)                                  5
-//     Uint8 events?                                                                          6
+//     Uint8 providedValues17to24                                                             3
+//       1: inputs2                                                                           |
+//       2: verticalSpeed                                                                     |
+//       3: positionZ                                                                         |
+//       4: ordnanceChannel1                                                                  |
+//       5: ordnanceChannel2                                                                  |
+//       6:                                                                                   |
+//       7:                                                                                   |
+//       8:                                                                                   |
+//     Uint8 idOverNetwork?                                                                   4
+//     Uint8 inputs1? (1&2:up 3&4:down 5&6:left 7&8:right)                                    5
+//     Uint8*1-4 positionX? (unit is cm * positonToNetworkFactor (0.01) = meter)              9
+//     Uint8*1-4 positionY? (unit is cm * positonToNetworkFactor (0.01) = meter)              13
+//     Uint8*2 rotationZ?                                                                     15
+//     Uint8 rotationSpeed                                                                    16
+//     Uint8*2 speed                                                                          18
+//     Uint8 events?                                                                          19
+//     Uint8 health?                                                                          20
+//     Uint8 fuel?                                                                            21
+//     Uint8 inputs2? (1&2:space 3&4:keyD 5&6:keyF 7&8:keyE)                                  22
 //       1: pOrdnance1Event                                                                   |
 //       2: ppOrdnance1Event                                                                  |
 //       3: pppOrdnance1Event                                                                 |
@@ -328,30 +357,9 @@ export const unreliableStateSingleObjectMaxBytes = 23;
 //       6: ppOrdnance2Event                                                                  |
 //       7: pppOrdnance2Event                                                                 |
 //       8: ppppOrdnance2Event                                                                |
-//     Uint8 health?                                                                          7
-//     Uint8 fuel?                                                                            8
-//     Uint8 providedBytesForPositionAndRotation? (6 bits in use)                             9
-//       1&2 positionX:                                                                       |
-//         [00]: 1 byte                                                                       |
-//         [01]: 2 bytes                                                                      |
-//         [10]: 3 bytes                                                                      |
-//         [11]: 4 bytes                                                                      |
-//       3&4 positionY:                                                                       |
-//         [00]: 1 byte                                                                       |
-//         [01]: 2 bytes                                                                      |
-//         [10]: 3 bytes                                                                      |
-//         [11]: 4 bytes                                                                      |
-//       5 positionZ:                                                                         |
-//         [0]: 1 byte                                                                        |
-//         [1]: 2 bytes                                                                       |
-//       6 rotationZ:                                                                         |
-//         [0]: 1 byte                                                                        |
-//         [1]: 2 bytes                                                                       |
-//     Uint8*1-4 positionX? (unit is cm * positonToNetworkFactor (0.01) = meter)              13
-//     Uint8*1-4 positionY? (unit is cm * positonToNetworkFactor (0.01) = meter)              17
-//     Uint8*1-2 positionZ? (unit is feet)                                                    19
-//     Uint8*1-2 rotationZ?                                                                   21
-//     Uint8 ordnanceChannel1(1/2)?                                                           22
+//     Uint8 verticalSpeed                                                                    23
+//     Uint8*2 positionZ? (unit is feet)                                                      25
+//     Uint8 ordnanceChannel1(1/2)?                                                           26
 //       1: id part 1                                                                         |
 //       2: id part 2                                                                         |
 //       3: id part 3                                                                         |
@@ -360,7 +368,7 @@ export const unreliableStateSingleObjectMaxBytes = 23;
 //       6: value part 2                                                                      |
 //       7: value part 3                                                                      |
 //       8: value part 4 (4 bit max value 15)                                                 |
-//     Uint8 ordnanceChannel1(2/2)?                                                           23
+//     Uint8 ordnanceChannel1(2/2)?                                                           27
 //       1: value part 5                                                                      |
 //       2: value part 6                                                                      |
 //       3: value part 7                                                                      |
@@ -369,7 +377,7 @@ export const unreliableStateSingleObjectMaxBytes = 23;
 //       6: value part 10                                                                     |
 //       7: value part 11                                                                     |
 //       8: value part 12 (12 bit max value 4095)                                             |
-//     Uint8 ordnanceChannel2(1/2)?                                                           24
+//     Uint8 ordnanceChannel2(1/2)?                                                           28
 //       1: id part 1                                                                         |
 //       2: id part 2                                                                         |
 //       3: id part 3                                                                         |
@@ -378,7 +386,7 @@ export const unreliableStateSingleObjectMaxBytes = 23;
 //       6: value part 2                                                                      |
 //       7: value part 3                                                                      |
 //       8: value part 4 (4 bit max value 15)                                                 |
-//     Uint8 ordnanceChannel2(2/2)?                                                           25
+//     Uint8 ordnanceChannel2(2/2)?                                                           29
 //       1: value part 5                                                                      |
 //       2: value part 6                                                                      |
 //       3: value part 7                                                                      |

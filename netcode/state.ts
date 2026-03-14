@@ -172,6 +172,10 @@ const encodeOrdnance = (
   out.fitsInOneByte = false;
 };
 
+function sameIntegerPart(a: number, b: number) {
+  return (a | 0) === (b | 0);
+}
+
 export const gatherStateData = (
   index: number,
   tickStateObject: types.TickStateObject,
@@ -186,6 +190,9 @@ export const gatherStateData = (
   const y = encodeAxisValue(o.y);
   const z = o.z;
   const rotationZ = encodeRotationZ(o.rotationZ);
+  const speed = o.speed;
+  const rotationSpeed = o.rotationSpeed;
+  const verticalSpeed = o.verticalSpeed;
 
   const inputs1 = objectInputs.byte1;
   const inputs2 = objectInputs.byte2;
@@ -195,114 +202,122 @@ export const gatherStateData = (
   encodeOrdnance(0, o.bullets, ordnanceChannel1);
   const xBytes = getUint8Bytes(x);
   const yBytes = getUint8Bytes(y);
-  const zBytes = getUint8Bytes(z);
-  const rotationZBytes = getUint8Bytes(rotationZ);
 
   let indexHasChanged = true;
   let inputs1HasChanged = true;
   let inputs2HasChanged = true;
   let eventsHasChanged = true;
   let healthHasChanged = true;
-  let xHasChanged = true;
-  let yHasChanged = true;
   let zHasChanged = true;
   let rotationZHasChanged = true;
+  let rotationSpeedHasChanged = true;
   let xDifferenceSignificance = 4;
   let yDifferenceSignificance = 4;
-  let zDifferenceSignificance = 2;
-  let rotationZDifferenceSignificance = 2;
-  let providedBytesForPositionAndRotationHasChanged = true;
   let ordnanceChannel1HasChanged = true;
   let ordnanceChannel2HasChanged = true;
-  let providedValues9to16HasChanged = true;
   let fuelHasChanged = true;
+  let speedHasChanged = true;
+  let verticalSpeedHasChanged = true;
 
   const stateToCompareTo = getStateToCompareTo(sequenceNumber);
   const oState = stateToCompareTo.state[idOverNetwork];
   if (oState && stateToCompareTo.acknowledged) {
-    index === oState.index && (indexHasChanged = false);
+    // ---values 1---
+    // 2
     inputs1 === oState.inputs1 && (inputs1HasChanged = false);
-    inputs2 === oState.inputs2 && (inputs2HasChanged = false);
-    eventsEncoded === oState.eventsEncoded && (eventsHasChanged = false);
-    healthByte === oState.health && (healthHasChanged = false);
+    // 3, 4
     const oXBytes = getUint8Bytes(oState.x);
     xDifferenceSignificance = getDifferenceSignificance(xBytes, oXBytes);
+    // 5, 6
     const oYBytes = getUint8Bytes(oState.y);
     yDifferenceSignificance = getDifferenceSignificance(yBytes, oYBytes);
-    const oZBytes = getUint8Bytes(oState.z);
-    zDifferenceSignificance = getDifferenceSignificance(zBytes, oZBytes);
-    const oRotationZBytes = getUint8Bytes(oState.rotationZ);
-    rotationZDifferenceSignificance = getDifferenceSignificance(
-      rotationZBytes,
-      oRotationZBytes
-    );
+    // 7
+    sameIntegerPart(rotationZ, oState.rotationZ) &&
+      (rotationZHasChanged = false);
+    // 8
+    sameIntegerPart(rotationSpeed, oState.rotationSpeed) &&
+      (rotationSpeedHasChanged = false);
+
+    // ---values 2---
+    // 2
+    index === oState.index && (indexHasChanged = false);
+    // 3
+    sameIntegerPart(speed, o.speed) && (speedHasChanged = false);
+    // 4
+    eventsEncoded === oState.eventsEncoded && (eventsHasChanged = false);
+    // 5
+    healthByte === oState.health && (healthHasChanged = false);
+    // 6
+    fuelByte === oState.fuel && (fuelHasChanged = false);
+
+    // ---values 3---
+    // 1
+    inputs2 === oState.inputs2 && (inputs2HasChanged = false);
+    // 2
+    sameIntegerPart(verticalSpeed, o.verticalSpeed) &&
+      (verticalSpeedHasChanged = false);
+    // 3
+    sameIntegerPart(z, o.z) && (zHasChanged = false);
+    // 4
     ordnanceChannel1.byte1 === oState.ordnanceChannel1.byte1 &&
       ordnanceChannel1.byte2 === oState.ordnanceChannel1.byte2 &&
       (ordnanceChannel1HasChanged = false);
+    // 5
     ordnanceChannel2.byte1 === oState.ordnanceChannel2.byte1 &&
       ordnanceChannel2.byte2 === oState.ordnanceChannel2.byte2 &&
       (ordnanceChannel2HasChanged = false);
-    fuelByte === oState.fuel && (fuelHasChanged = false);
-  }
-  xDifferenceSignificance === 0 && (xHasChanged = false);
-  yDifferenceSignificance === 0 && (yHasChanged = false);
-  zDifferenceSignificance === 0 && (zHasChanged = false);
-  rotationZDifferenceSignificance === 0 && (rotationZHasChanged = false);
-  !indexHasChanged &&
-    !healthHasChanged &&
-    !ordnanceChannel1HasChanged &&
-    !ordnanceChannel2HasChanged &&
-    (providedValues9to16HasChanged = false);
-
-  let providedBytesForPositionAndRotation = 0b00000000;
-
-  if (xDifferenceSignificance === 4) {
-    providedBytesForPositionAndRotation |= 0b00000011; // bit 1&2
-  } else if (xDifferenceSignificance === 3) {
-    providedBytesForPositionAndRotation |= 0b00000010; // bit 2
-  } else if (xDifferenceSignificance === 2) {
-    providedBytesForPositionAndRotation |= 0b00000001; // bit 1
   }
 
-  if (yDifferenceSignificance === 4)
-    providedBytesForPositionAndRotation |= 0b00001100; // bit 3&4
-  if (yDifferenceSignificance === 3)
-    providedBytesForPositionAndRotation |= 0b00001000; // bit 4
-  if (yDifferenceSignificance === 2)
-    providedBytesForPositionAndRotation |= 0b00000100; // bit 3
-  if (zDifferenceSignificance === 2)
-    providedBytesForPositionAndRotation |= 0b00010000; // bit 5
-  if (rotationZDifferenceSignificance === 2)
-    providedBytesForPositionAndRotation |= 0b00100000; // bit 6
+  // ---values 3---
+  let providedValues17to24 = 0b00000000;
+  inputs2HasChanged && (providedValues17to24 |= 0b00000001);
+  verticalSpeedHasChanged && (providedValues17to24 |= 0b00000010);
+  zHasChanged && (providedValues17to24 |= 0b00000100);
+  ordnanceChannel1HasChanged && (providedValues17to24 |= 0b00001000);
+  ordnanceChannel2HasChanged && (providedValues17to24 |= 0b00010000);
 
-  const a = providedBytesForPositionAndRotation;
-  const b = oState?.providedBytesForPositionAndRotation;
-  a === b && (providedBytesForPositionAndRotationHasChanged = false);
-
-  let providedValues1to8 = 0b00000000;
-  providedValues9to16HasChanged && (providedValues1to8 |= 0b00000001);
-  inputs1HasChanged && (providedValues1to8 |= 0b00000010);
-  inputs2HasChanged && (providedValues1to8 |= 0b00000100);
-  eventsHasChanged && (providedValues1to8 |= 0b00001000);
-  providedBytesForPositionAndRotationHasChanged &&
-    (providedValues1to8 |= 0b00010000);
-  xHasChanged && (providedValues1to8 |= 0b00100000);
-  yHasChanged && (providedValues1to8 |= 0b01000000);
-  rotationZHasChanged && (providedValues1to8 |= 0b10000000);
-
+  // ---values 2---
   let providedValues9to16 = 0b00000000;
-  indexHasChanged && (providedValues9to16 |= 0b00000001);
-  zHasChanged && (providedValues1to8 |= 0b00000010);
-  healthHasChanged && (providedValues9to16 |= 0b00000100);
-  fuelHasChanged && (providedValues1to8 |= 0b00001000);
-  ordnanceChannel1HasChanged && (providedValues9to16 |= 0b00010000);
-  ordnanceChannel2HasChanged && (providedValues9to16 |= 0b00100000);
+  providedValues17to24 && (providedValues9to16 |= 0b00000001);
+  indexHasChanged && (providedValues9to16 |= 0b00000010);
+  speedHasChanged && (providedValues9to16 |= 0b00000100);
+  eventsHasChanged && (providedValues9to16 |= 0b00001000);
+  healthHasChanged && (providedValues9to16 |= 0b00010000);
+  fuelHasChanged && (providedValues9to16 |= 0b00100000);
+
+  // ---values 1---
+  let providedValues1to8 = 0b00000000;
+  providedValues9to16 && (providedValues1to8 |= 0b00000001);
+  inputs1HasChanged && (providedValues1to8 |= 0b00000010);
+  if (xDifferenceSignificance === 4 || xDifferenceSignificance === 3) {
+    providedValues1to8 |= 0b00001100;
+  } else if (xDifferenceSignificance === 2) {
+    providedValues1to8 |= 0b00001000;
+  } else if (xDifferenceSignificance === 1) {
+    providedValues1to8 |= 0b00000100;
+  }
+  if (yDifferenceSignificance === 4 || yDifferenceSignificance === 3) {
+    providedValues1to8 |= 0b00110000;
+  } else if (yDifferenceSignificance === 2) {
+    providedValues1to8 |= 0b00100000;
+  } else if (yDifferenceSignificance === 1) {
+    providedValues1to8 |= 0b00010000;
+  }
+  rotationZHasChanged && (providedValues1to8 |= 0b01000000);
+  rotationSpeedHasChanged && (providedValues1to8 |= 0b10000000);
+
+  // ---values---
 
   let localOffset = 0;
 
   const setUint8 = (value: number) => {
     view.setUint8(offset + localOffset, value);
     localOffset++;
+  };
+
+  const setUint16 = (value: number) => {
+    view.setUint8(offset + localOffset, value);
+    localOffset += 2;
   };
 
   const insertChangedBytes = (
@@ -315,22 +330,33 @@ export const gatherStateData = (
   };
 
   setUint8(providedValues1to8);
-  providedValues9to16HasChanged && setUint8(providedValues9to16);
+  providedValues9to16 && setUint8(providedValues9to16);
+  providedValues17to24 && setUint8(providedValues17to24);
   indexHasChanged && setUint8(idOverNetwork);
-  inputs1HasChanged && setUint8(inputs1 || 0);
-  inputs2HasChanged && setUint8(inputs2 || 0);
-  if (eventsHasChanged) {
-    setUint8(eventsEncoded);
-  }
 
+  // ---values 1---
+  inputs1HasChanged && setUint8(inputs1 || 0);
+  insertChangedBytes(
+    xDifferenceSignificance === 3 ? 4 : xDifferenceSignificance,
+    xBytes
+  );
+  insertChangedBytes(
+    yDifferenceSignificance === 3 ? 4 : yDifferenceSignificance,
+    yBytes
+  );
+  rotationZHasChanged && setUint16(rotationZ);
+  rotationSpeedHasChanged && setUint8(rotationSpeed);
+
+  // ---values 2---
+  speedHasChanged && setUint16(speed);
+  eventsHasChanged && setUint8(eventsEncoded);
   healthHasChanged && setUint8(healthByte);
   fuelHasChanged && setUint8(fuelByte);
-  providedBytesForPositionAndRotationHasChanged &&
-    setUint8(providedBytesForPositionAndRotation);
-  insertChangedBytes(xDifferenceSignificance, xBytes);
-  insertChangedBytes(yDifferenceSignificance, yBytes);
-  insertChangedBytes(zDifferenceSignificance, zBytes);
-  insertChangedBytes(rotationZDifferenceSignificance, rotationZBytes);
+
+  // ---values 3---
+  inputs2HasChanged && setUint8(inputs2 || 0);
+  verticalSpeedHasChanged && setUint8(verticalSpeed);
+  zHasChanged && setUint16(z);
   ordnanceChannel1HasChanged && setUint8(ordnanceChannel1.byte1);
   ordnanceChannel1HasChanged &&
     !ordnanceChannel1.fitsInOneByte &&
@@ -346,16 +372,24 @@ export const gatherStateData = (
     const o = recentStates[sequenceNumber].state[idOverNetwork];
     if (o) {
       o.index = index;
-      o.idOverNetwork = idOverNetwork;
+      // ---values 1---
       o.inputs1 = inputs1;
-      o.health = healthByte;
       o.x = x;
       o.y = y;
-      o.z = z;
       o.rotationZ = rotationZ;
-      o.providedBytesForPositionAndRotation =
-        providedBytesForPositionAndRotation;
+      o.rotationSpeed = rotationSpeed;
+
+      // ---values 2---
+      o.idOverNetwork = idOverNetwork;
+      o.speed = speed;
+      o.eventsEncoded = eventsEncoded;
+      o.health = healthByte;
       o.fuel = fuelByte;
+
+      // ---values 3---
+      o.inputs2 = inputs2;
+      o.verticalSpeed = verticalSpeed;
+      o.z = z;
       o.ordnanceChannel1.byte1 = ordnanceChannel1.byte1;
       o.ordnanceChannel1.byte2 = ordnanceChannel1.byte2;
       o.ordnanceChannel2.byte1 = ordnanceChannel2.byte1;
@@ -363,17 +397,25 @@ export const gatherStateData = (
     } else {
       recentStates[sequenceNumber].state[idOverNetwork] = {
         index,
-        idOverNetwork,
-        inputs1: inputs1,
-        inputs2: inputs2,
-        eventsEncoded,
-        health: healthByte,
+
+        // ---values 1---
+        inputs1,
         x,
         y,
-        z,
         rotationZ,
-        providedBytesForPositionAndRotation,
+        rotationSpeed,
+
+        // ---values 2---
+        idOverNetwork,
+        speed,
+        eventsEncoded,
+        health: healthByte,
         fuel: fuelByte,
+
+        // ---values 3---
+        inputs2: inputs2,
+        verticalSpeed,
+        z,
         ordnanceChannel1: {
           byte1: ordnanceChannel1.byte1,
           byte2: ordnanceChannel1.byte2,
