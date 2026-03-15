@@ -304,7 +304,7 @@ export const unreliableStateSingleObjectMaxBytes = 29;
 //   Uint8 sequence number (1 byte)
 //   ...game object data (1-29 bytes each): [                                                 bytes cumulative max
 //     Uint8 providedValues1to8                                                               1
-//       1: providedValues9to16 (true if non-zero, not compared to recent state)              |
+//       1: providedValues9to16 (true if the byte is non-zero, not compared to recent state)  |
 //       2: inputs1                                                                           |
 //       3: providedBytesPositionX                                                            |
 //       4: providedBytesPositionX                                                            |
@@ -321,7 +321,7 @@ export const unreliableStateSingleObjectMaxBytes = 29;
 //       7: rotationZ                                                                         |
 //       8: rotationSpeed                                                                     |
 //     Uint8 providedValues9to16                                                              2
-//       1: providedValues17to24 (true if non-zero, not compared to recent state)             |
+//       1: providedValues17to24 (true if the byte is non-zero, not compared to recent state) |
 //       2: idOverNetwork                                                                     |
 //       3: speed                                                                             |
 //       4: events                                                                            |
@@ -346,9 +346,6 @@ export const unreliableStateSingleObjectMaxBytes = 29;
 //     Uint8 rotationSpeed                                                                    16
 //     Uint8*2 speed                                                                          18
 //     Uint8 events?                                                                          19
-//     Uint8 health?                                                                          20
-//     Uint8 fuel?                                                                            21
-//     Uint8 inputs2? (1&2:space 3&4:keyD 5&6:keyF 7&8:keyE)                                  22
 //       1: pOrdnance1Event                                                                   |
 //       2: ppOrdnance1Event                                                                  |
 //       3: pppOrdnance1Event                                                                 |
@@ -357,6 +354,9 @@ export const unreliableStateSingleObjectMaxBytes = 29;
 //       6: ppOrdnance2Event                                                                  |
 //       7: pppOrdnance2Event                                                                 |
 //       8: ppppOrdnance2Event                                                                |
+//     Uint8 health?                                                                          20
+//     Uint8 fuel?                                                                            21
+//     Uint8 inputs2? (1&2:space 3&4:keyD 5&6:keyF 7&8:keyE)                                  22
 //     Uint8 verticalSpeed                                                                    23
 //     Uint8*2 positionZ? (unit is feet)                                                      25
 //     Uint8 ordnanceChannel1(1/2)?                                                           26
