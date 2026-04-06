@@ -9,3 +9,6 @@ export const clients: types.Clients = {
 };
 export const queue: string[] = []; // ids
 export const sharedObjectsById: { [id: string]: types.SharedGameObject } = {};
+export const state: { sharedObjectInfo: types.SharedObjectInfo[] } = {
+  sharedObjectInfo: [],
+};

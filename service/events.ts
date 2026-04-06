@@ -25,6 +25,11 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
         resetRecentStates();
         insertNewObject(data.id, freeObject);
         handleSendBaseState(data.currentState);
+        globals.state.sharedObjectInfo.push({
+          id: freeObject.id,
+          idOverNetwork: freeObject.idOverNetwork,
+          username: freeObject.username,
+        });
       } else {
         globals.queue.push(data.id);
         handleSendQueue(data.id);

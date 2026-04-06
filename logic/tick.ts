@@ -69,6 +69,13 @@ const initializeTicks = () => {
   }
 };
 
+const initializeLocalObjects = () => {
+  localObjects.length = 0;
+  for (let i = 0; i < parameters.stateMaxSequenceNumber + 1; i++) {
+    localObjects[i] = [];
+  }
+};
+
 const initializeReceivedInputs = () => {
   receivedInputs.length = 0;
   for (let i = 0; i < parameters.stateMaxSequenceNumber + 1; i++) {
@@ -108,6 +115,7 @@ const initializeReceivedInputs = () => {
 
 initializeTicks();
 initializeReceivedInputs();
+initializeLocalObjects();
 // initializeReceivedInputTicknumbers();
 
 const isWithinMaxRollback = (seq: number, x: number) => {

@@ -1,6 +1,12 @@
 import { PeerConnection, DataChannel } from "node-datachannel";
 import * as THREE from "three";
 
+export type SharedObjectInfo = {
+  id: string;
+  idOverNetwork: number;
+  username: string;
+};
+
 export enum ReceivedEventType {
   NewId,
   RemoveId,
