@@ -33,11 +33,37 @@ const localObjects: types.TickLocalObject[][] = [];
 
 const receivedEvents: types.ReceivedEvent[] = [];
 
+const getInitialTickStateObject = (id: number) => {
+  const obj: types.TickStateObject = {
+    exists: false,
+    id: "",
+    idOverNetwork: id,
+    isPlayer: false,
+    username: "",
+    health: 255,
+    type: types.GameObjectType.Fighter as const,
+    x: 0,
+    y: 0,
+    z: 0,
+    rotationZ: 0,
+    score: 0,
+    speed: 0,
+    rotationSpeed: 0,
+    verticalSpeed: 0,
+    shotDelay: 0,
+    fuel: 0,
+    bullets: 0,
+    ordnance1Event: false,
+    ordnance2Event: false,
+  };
+  return obj;
+};
+
 const initializeTicks = () => {
   ticks.length = 0;
   for (let i = 0; i < parameters.stateMaxSequenceNumber + 1; i++) {
     ticks[i] = [];
-    for (let ii = 0; i < parameters.maxRemoteObjects; i++) {
+    for (let ii = 0; ii < parameters.maxRemoteObjects; ii++) {
       ticks[i][ii] = getInitialTickStateObject(ii);
     }
   }
@@ -47,7 +73,7 @@ const initializeReceivedInputs = () => {
   receivedInputs.length = 0;
   for (let i = 0; i < parameters.stateMaxSequenceNumber + 1; i++) {
     receivedInputs[i] = [];
-    for (let ii = 0; i < parameters.maxRemoteObjects; i++) {
+    for (let ii = 0; ii < parameters.maxRemoteObjects; ii++) {
       receivedInputs[i][ii] = {
         inputs: {
           up: undefined,
@@ -416,30 +442,4 @@ export const runTick = (tickNumber: number) => {
   handleReceivedEvents();
   sendState();
   // resetReceivedInputTicknumbers();
-};
-
-const getInitialTickStateObject = (id: number) => {
-  const obj: types.TickStateObject = {
-    exists: false,
-    id: "",
-    idOverNetwork: id,
-    isPlayer: false,
-    username: "",
-    health: 255,
-    type: types.GameObjectType.Fighter as const,
-    x: 0,
-    y: 0,
-    z: 0,
-    rotationZ: 0,
-    score: 0,
-    speed: 0,
-    rotationSpeed: 0,
-    verticalSpeed: 0,
-    shotDelay: 0,
-    fuel: 0,
-    bullets: 0,
-    ordnance1Event: false,
-    ordnance2Event: false,
-  };
-  return obj;
 };
