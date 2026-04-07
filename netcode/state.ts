@@ -56,7 +56,7 @@ const syncBufferSize = () => {
       objectCount * types.unreliableStateSingleObjectMaxBytes;
     buffer = new ArrayBuffer(maxBytes);
     view = new DataView(buffer);
-    console.log("--SYNC BUFFER SIZE:", maxBytes);
+    console.log("--SYNC BUFFER SIZE:", maxBytes, objectCount);
   }
 };
 

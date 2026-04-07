@@ -9,6 +9,7 @@ import { receiveEvent } from "./logic/tick";
 dotenv.config();
 
 const onChannelsChanged = (peerId: string) => {
+  console.log("--onChannelsChanged:", peerId);
   const client = globals.clients.map[peerId];
   if (client && client.stringChannel?.isOpen()) {
     console.log(`Connection open for peer ${peerId}`);

@@ -436,6 +436,7 @@ const handleReceivedEvents = () => {
         break;
     }
   }
+  receivedEvents.length = 0;
 };
 
 const tickBuffer = new Uint8Array(1);
