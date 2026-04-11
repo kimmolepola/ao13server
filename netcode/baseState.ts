@@ -27,7 +27,7 @@ export const handleSendBaseState = (currentState: types.TickStateObject[]) => {
     staticObjects,
   };
 
-  // console.log("--data:", data);
+  console.log("--data:", data);
 
   sendReliableString({
     type: types.ServerStringDataType.BaseState,

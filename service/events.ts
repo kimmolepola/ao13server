@@ -12,10 +12,16 @@ const axis = utils.AXIS_Z;
 
 const bulletTickToLive = parameters.bulletTimeToLive / parameters.tickInterval;
 
-export const gameEventHandler = (gameEvent: types.GameEvent) => {
+export const gameEventHandler = async (gameEvent: types.GameEvent) => {
   switch (gameEvent.type) {
     case types.EventType.RemoveId: {
       handleRemoveId(gameEvent.data);
+      const removeIndex = globals.state.sharedObjectInfo.findIndex(
+        (x) => x.id === gameEvent.data.id
+      );
+      removeIndex !== -1 &&
+        globals.state.sharedObjectInfo.splice(removeIndex, 1);
+      delete globals.state.sharedObjectInfoById[gameEvent.data.id];
       break;
     }
     case types.EventType.NewId: {
@@ -23,13 +29,15 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
       const freeObject = data.currentState.find((x) => !x.exists);
       if (freeObject) {
         resetRecentStates();
-        insertNewObject(data.id, freeObject);
+        await insertNewObject(data.id, freeObject);
         handleSendBaseState(data.currentState);
-        globals.state.sharedObjectInfo.push({
+        const obj = {
           id: freeObject.id,
           idOverNetwork: freeObject.idOverNetwork,
           username: freeObject.username,
-        });
+        };
+        globals.state.sharedObjectInfo.push(obj);
+        globals.state.sharedObjectInfoById[freeObject.id] = obj;
       } else {
         globals.queue.push(data.id);
         handleSendQueue(data.id);
@@ -113,6 +121,7 @@ const handleRemoveId = (data: {
   currentState: types.TickStateObject[];
 }) => {
   const obj = data.currentState.find((x) => x.id === data.id);
+  console.log("--remove", obj, data.id);
   if (obj) {
     obj.exists = false;
     savePlayerData(data.currentState);
@@ -141,7 +150,7 @@ const insertNewObject = async (
   o.exists = true;
   o.score = data.score || 0;
   o.isPlayer = data.isPlayer || false;
-  o.username = data.username = "";
+  o.username = data.username || "";
   o.id = id;
   o.type = types.GameObjectType.Fighter as const;
   o.speed = parameters.initialSpeed;

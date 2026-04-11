@@ -139,27 +139,28 @@ export const receiveEvent = (event: types.ReceivedEvent) => {
 
 export const receiveInputData = (remoteId: string, data: types.InputsData) => {
   const t = data.tickNumber;
-  if (!isWithinMaxRollback(currentTick, t)) return;
+  if (!isWithinMaxRollback(t, currentTick)) return;
 
-  const sharedObject = globals.sharedObjectsById[remoteId];
-  const d = data.inputs;
-  const r = receivedInputs[t][sharedObject.idOverNetwork];
-  r.inputs.up = d.up;
-  r.inputs.down = d.down;
-  r.inputs.left = d.left;
-  r.inputs.right = d.right;
-  r.inputs.space = d.space;
-  r.inputs.keyD = d.keyD;
-  r.inputs.keyF = d.keyF;
-  r.inputs.keyE = d.keyE;
-  r.byte1 = data.byte1;
-  r.byte2 = data.byte2;
+  const sharedObject = globals.state.sharedObjectInfoById[remoteId];
+  if (sharedObject) {
+    const d = data.inputs;
+    const r = receivedInputs[t][sharedObject.idOverNetwork];
+    r.inputs.up = d.up;
+    r.inputs.down = d.down;
+    r.inputs.left = d.left;
+    r.inputs.right = d.right;
+    r.inputs.space = d.space;
+    r.inputs.keyD = d.keyD;
+    r.inputs.keyF = d.keyF;
+    r.inputs.keyE = d.keyE;
+    r.byte1 = data.byte1;
+    r.byte2 = data.byte2;
 
-  if (seqLess(t, oldestInputTick)) {
-    oldestInputTick = t;
+    if (seqLess(t, oldestInputTick)) {
+      oldestInputTick = t;
+    }
+    // receivedInputTicknumbers[sharedObject.idOverNetwork]?.push(t);
   }
-
-  // receivedInputTicknumbers[sharedObject.idOverNetwork]?.push(t);
 };
 
 const handleMovement = (
@@ -294,7 +295,6 @@ export function seq8Sub(seq: number, value: number): number {
 }
 
 const handleSharedObjects = (tickNumber: number, isRollback: boolean) => {
-  const p = parameters;
   const pSeq = getPrevSeq(tickNumber);
   const ppSeq = getPrevSeq(pSeq);
 
@@ -304,35 +304,30 @@ const handleSharedObjects = (tickNumber: number, isRollback: boolean) => {
   const prevInputs = receivedInputs[pSeq];
   const prevPrevInputs = receivedInputs[ppSeq];
 
-  for (let i = 0; i < p.maxSharedObjects; i++) {
-    const curStateObj = currentState[i];
-    const prevStateObj = previousState[i];
+  for (let i = 0; i < parameters.maxSharedObjects; i++) {
+    const c = currentState[i];
+    const p = previousState[i];
     const playerCurInputs = currentInputs[i];
-    if (prevStateObj.exists) {
-      curStateObj.exists = true;
-      handleMovement(
-        curStateObj,
-        prevStateObj,
-        playerCurInputs,
-        prevInputs[i],
-        prevPrevInputs[i]
-      );
-      handleShot(
-        tickNumber,
-        curStateObj,
-        prevStateObj,
-        playerCurInputs,
-        gameEventHandler
-      );
+    if (p.exists) {
+      c.exists = true;
+      c.id = p.id;
+      c.isPlayer = p.isPlayer;
+      c.username = p.username;
+      c.health = p.health;
+      c.type = p.type;
+      c.score = p.score;
+      handleMovement(c, p, playerCurInputs, prevInputs[i], prevPrevInputs[i]);
+      handleShot(tickNumber, c, p, playerCurInputs, gameEventHandler);
       checkCollisions(
         i,
-        curStateObj,
+        c,
         currentState,
         localObjects[tickNumber],
         gameEventHandler
       );
+      c.fuel = p.fuel - c.speed * 0.0001;
       if (!isRollback) {
-        const idN = curStateObj.idOverNetwork;
+        const idN = c.idOverNetwork;
         const input = receivedInputs[tickNumber][idN];
 
         const pppSeq = getPrevSeq(ppSeq);
@@ -356,15 +351,18 @@ const handleSharedObjects = (tickNumber: number, isRollback: boolean) => {
         pppOrdnance2Event && eventsEncoded | 0b01000000;
         ppppOrdnance2Event && eventsEncoded | 0b10000000;
 
-        gatherStateData(i, curStateObj, input, eventsEncoded, tickNumber);
-        const tickNumPastRollback = seq8Sub(tickNumber, p.maxRollback + 1);
+        gatherStateData(i, c, input, eventsEncoded, tickNumber);
+        const tickNumPastRollback = seq8Sub(
+          tickNumber,
+          parameters.maxRollback + 1
+        );
         resetInputs(tickNumPastRollback, i);
       }
-      if (curStateObj.health <= 0) {
+      if (c.health <= 0) {
         gameEventHandler({
           type: types.EventType.HealthZero,
           data: {
-            id: curStateObj.id,
+            id: c.id,
             currentState,
           },
         });
@@ -425,6 +423,7 @@ const handleRemoveId = (id: string) => {
 const handleReceivedEvents = () => {
   for (let i = 0; i < receivedEvents.length; i++) {
     const e = receivedEvents[i];
+    console.log("--e:", e);
     switch (e.type) {
       case types.ReceivedEventType.NewId:
         handleNewId(e.data);

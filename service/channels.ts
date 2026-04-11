@@ -24,7 +24,8 @@ export const onReceiveString = (
         text: data.text,
         userId: clientId,
         username:
-          globals.sharedObjects.find((x) => x.id === clientId)?.username || "",
+          globals.state.sharedObjectInfo.find((x) => x.id === clientId)
+            ?.username || "",
       };
       sendReliableString({
         ...message,
