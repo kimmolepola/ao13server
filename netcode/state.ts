@@ -177,6 +177,8 @@ function sameIntegerPart(a: number, b: number) {
   return (a | 0) === (b | 0);
 }
 
+let prevYDiff = 5;
+
 export const gatherStateData = (
   index: number,
   tickStateObject: types.TickStateObject,
@@ -232,6 +234,10 @@ export const gatherStateData = (
     // 5, 6
     const oYBytes = getUint8Bytes(oState.y);
     yDifferenceSignificance = getDifferenceSignificance(yBytes, oYBytes);
+    if (prevYDiff !== yDifferenceSignificance) {
+      console.log("--y diff:", yDifferenceSignificance, yBytes, oYBytes, y);
+    }
+    prevYDiff = yDifferenceSignificance;
     // 7
     sameIntegerPart(rotationZ, oState.rotationZ) &&
       (rotationZHasChanged = false);
