@@ -447,6 +447,7 @@ export const runTick = (tickNumber: number) => {
     performRollback(tickNumber, oldestInputTick);
   }
   simulate(tickNumber, false);
+  oldestInputTick = tickNumber;
   handleReceivedEvents();
   sendState();
   // resetReceivedInputTicknumbers();

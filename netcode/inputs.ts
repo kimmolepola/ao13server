@@ -18,11 +18,11 @@ const data: types.InputsData = {
 
 function get2BitValueFromBufferBE(
   len: number,
-  buf: Buffer<ArrayBufferLike>, // byte1: tickNumber, byte2: value, byte3: value
+  buf: Buffer<ArrayBufferLike>, // byte1: tickNumber, byte2: directional, byte3: action
   pos: 0 | 2 | 4 | 6 | 8 | 10 | 12 | 14
 ) {
-  // Assemble big-endian integer manually
-  const value16 = len === 2 ? buf[1] : (buf[1] << 8) | buf[2];
+  // buf[1] is always the high byte; buf[2] is the low byte (0 when omitted)
+  const value16 = len === 2 ? buf[1] << 8 : (buf[1] << 8) | buf[2];
 
   return ((value16 >> pos) & 0b11) as types.Count60FPSWithin20FPS;
 }
@@ -34,14 +34,16 @@ export const decodeInputs = (
   const len = buffer.length;
 
   data.tickNumber = buffer[0];
-  data.inputs.up = get2BitValueFromBufferBE(len, buffer, 0);
-  data.inputs.down = get2BitValueFromBufferBE(len, buffer, 2);
-  data.inputs.left = get2BitValueFromBufferBE(len, buffer, 4);
-  data.inputs.right = get2BitValueFromBufferBE(len, buffer, 6);
-  data.inputs.space = get2BitValueFromBufferBE(len, buffer, 8);
-  data.inputs.keyD = get2BitValueFromBufferBE(len, buffer, 10);
-  data.inputs.keyF = get2BitValueFromBufferBE(len, buffer, 12);
-  data.inputs.keyE = get2BitValueFromBufferBE(len, buffer, 14);
+  // buf[1] (high byte, positions 8–14): directional keys
+  data.inputs.up = get2BitValueFromBufferBE(len, buffer, 8);
+  data.inputs.down = get2BitValueFromBufferBE(len, buffer, 10);
+  data.inputs.left = get2BitValueFromBufferBE(len, buffer, 12);
+  data.inputs.right = get2BitValueFromBufferBE(len, buffer, 14);
+  // buf[2] (low byte, positions 0–6): action keys (0 when 2-byte packet)
+  data.inputs.space = get2BitValueFromBufferBE(len, buffer, 0);
+  data.inputs.keyD = get2BitValueFromBufferBE(len, buffer, 2);
+  data.inputs.keyF = get2BitValueFromBufferBE(len, buffer, 4);
+  data.inputs.keyE = get2BitValueFromBufferBE(len, buffer, 6);
 
   data.byte1 = buffer[1];
   data.byte2 = len === 2 ? undefined : buffer[2];

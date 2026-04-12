@@ -121,7 +121,7 @@ const handleRemoveId = (data: {
   currentState: types.TickStateObject[];
 }) => {
   const obj = data.currentState.find((x) => x.id === data.id);
-  console.log("--remove", obj, data.id);
+  console.log("--remove", obj?.idOverNetwork, obj?.id, data.id);
   if (obj) {
     obj.exists = false;
     savePlayerData(data.currentState);

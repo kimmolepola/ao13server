@@ -179,6 +179,7 @@ function sameIntegerPart(a: number, b: number) {
 }
 
 let prevYDiff = 5;
+let prevSpeed = 0;
 
 export const gatherStateData = (
   index: number,
@@ -195,6 +196,10 @@ export const gatherStateData = (
   const z = o.z;
   const rotationZ = encodeRotationZ(o.rotationZ);
   const speed = o.speed;
+  if (prevSpeed !== speed) {
+    console.log("--speed:", prevSpeed, speed);
+    prevSpeed = speed;
+  }
   const rotationSpeed = o.rotationSpeed;
   const verticalSpeed = o.verticalSpeed;
 
@@ -236,7 +241,14 @@ export const gatherStateData = (
     const oYBytes = getUint8Bytes(oState.y);
     yDifferenceSignificance = getDifferenceSignificance(yBytes, oYBytes);
     if (prevYDiff !== yDifferenceSignificance) {
-      console.log("--y diff:", yDifferenceSignificance, yBytes, oYBytes, y);
+      console.log(
+        "--y diff:",
+        yDifferenceSignificance,
+        yBytes,
+        oYBytes,
+        y,
+        speed
+      );
     }
     prevYDiff = yDifferenceSignificance;
     // 7
