@@ -159,6 +159,7 @@ const encodeOrdnance = (
     out.byte1 = byte;
     out.byte2 = 0;
     out.fitsInOneByte = true;
+    return;
   }
 
   // Otherwise: 2‑byte encoding
@@ -249,7 +250,7 @@ export const gatherStateData = (
     // 2
     index === oState.index && (indexHasChanged = false);
     // 3
-    sameIntegerPart(speed, o.speed) && (speedHasChanged = false);
+    sameIntegerPart(speed, oState.speed) && (speedHasChanged = false);
     // 4
     eventsEncoded === oState.eventsEncoded && (eventsHasChanged = false);
     // 5
@@ -261,10 +262,10 @@ export const gatherStateData = (
     // 1
     inputs2 === oState.inputs2 && (inputs2HasChanged = false);
     // 2
-    sameIntegerPart(verticalSpeed, o.verticalSpeed) &&
+    sameIntegerPart(verticalSpeed, oState.verticalSpeed) &&
       (verticalSpeedHasChanged = false);
     // 3
-    sameIntegerPart(z, o.z) && (zHasChanged = false);
+    sameIntegerPart(z, oState.z) && (zHasChanged = false);
     // 4
     ordnanceChannel1.byte1 === oState.ordnanceChannel1.byte1 &&
       ordnanceChannel1.byte2 === oState.ordnanceChannel1.byte2 &&
@@ -323,7 +324,7 @@ export const gatherStateData = (
   };
 
   const setUint16 = (value: number) => {
-    view.setUint8(offset + localOffset, value);
+    view.setUint16(offset + localOffset, value);
     localOffset += 2;
   };
 
