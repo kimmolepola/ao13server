@@ -178,8 +178,9 @@ function sameIntegerPart(a: number, b: number) {
   return (a | 0) === (b | 0);
 }
 
-let prevYDiff = 5;
 let prevSpeed = 0;
+let prevX = 0;
+let prevY = 0;
 
 export const gatherStateData = (
   index: number,
@@ -196,9 +197,17 @@ export const gatherStateData = (
   const z = o.z;
   const rotationZ = encodeRotationZ(o.rotationZ);
   const speed = o.speed;
-  if (prevSpeed !== speed) {
-    console.log("--speed:", prevSpeed, speed);
-    prevSpeed = speed;
+  // if (prevSpeed.toFixed(2) !== speed.toFixed(2)) {
+  //   console.log(
+  //     "--speed:",
+  //     prevSpeed.toFixed(2),
+  //     speed.toFixed(2),
+  //   );
+  //   prevSpeed = speed;
+  // }
+  if (prevY.toFixed(0) !== y.toFixed(0)) {
+    console.log("--y:", prevY.toFixed(0), y.toFixed(0), o.y.toFixed(2));
+    prevY = y;
   }
   const rotationSpeed = o.rotationSpeed;
   const verticalSpeed = o.verticalSpeed;
@@ -240,17 +249,7 @@ export const gatherStateData = (
     // 5, 6
     const oYBytes = getUint8Bytes(oState.y);
     yDifferenceSignificance = getDifferenceSignificance(yBytes, oYBytes);
-    if (prevYDiff !== yDifferenceSignificance) {
-      console.log(
-        "--y diff:",
-        yDifferenceSignificance,
-        yBytes,
-        oYBytes,
-        y,
-        speed
-      );
-    }
-    prevYDiff = yDifferenceSignificance;
+
     // 7
     sameIntegerPart(rotationZ, oState.rotationZ) &&
       (rotationZHasChanged = false);

@@ -342,14 +342,14 @@ const handleSharedObjects = (tickNumber: number, isRollback: boolean) => {
         const ppppOrdnance2Event = ticks[ppppSeq][i].ordnance2Event;
 
         let eventsEncoded = 0b00000000;
-        pOrdnance1Event && eventsEncoded | 0b00000001;
-        ppOrdnance1Event && eventsEncoded | 0b00000010;
-        pppOrdnance1Event && eventsEncoded | 0b00000100;
-        ppppOrdnance1Event && eventsEncoded | 0b00001000;
-        pOrdnance2Event && eventsEncoded | 0b00010000;
-        ppOrdnance2Event && eventsEncoded | 0b00100000;
-        pppOrdnance2Event && eventsEncoded | 0b01000000;
-        ppppOrdnance2Event && eventsEncoded | 0b10000000;
+        pOrdnance1Event && (eventsEncoded |= 0b00000001);
+        ppOrdnance1Event && (eventsEncoded |= 0b00000010);
+        pppOrdnance1Event && (eventsEncoded |= 0b00000100);
+        ppppOrdnance1Event && (eventsEncoded |= 0b00001000);
+        pOrdnance2Event && (eventsEncoded |= 0b00010000);
+        ppOrdnance2Event && (eventsEncoded |= 0b00100000);
+        pppOrdnance2Event && (eventsEncoded |= 0b01000000);
+        ppppOrdnance2Event && (eventsEncoded |= 0b10000000);
 
         gatherStateData(i, c, input, eventsEncoded, tickNumber);
         const tickNumPastRollback = seq8Sub(
