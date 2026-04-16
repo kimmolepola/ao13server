@@ -178,10 +178,7 @@ function sameIntegerPart(a: number, b: number) {
   return (a | 0) === (b | 0);
 }
 
-let prevSpeed = 0;
-let prevX = 0;
-let prevY = 0;
-
+let prevRot = 0;
 export const gatherStateData = (
   index: number,
   tickStateObject: types.TickStateObject,
@@ -195,6 +192,10 @@ export const gatherStateData = (
   const x = encodeAxisValue(o.x);
   const y = encodeAxisValue(o.y);
   const z = o.z;
+  if (index === 0 && prevRot !== o.rotationZ) {
+    prevRot = o.rotationZ;
+    console.log("rot:", o.rotationZ);
+  }
   const rotationZ = encodeRotationZ(o.rotationZ);
   const speed = o.speed;
   // if (prevSpeed.toFixed(2) !== speed.toFixed(2)) {
@@ -205,10 +206,6 @@ export const gatherStateData = (
   //   );
   //   prevSpeed = speed;
   // }
-  if (prevY.toFixed(0) !== y.toFixed(0)) {
-    console.log("--y:", prevY.toFixed(0), y.toFixed(0), o.y.toFixed(2));
-    prevY = y;
-  }
   const rotationSpeed = o.rotationSpeed;
   const verticalSpeed = o.verticalSpeed;
 
