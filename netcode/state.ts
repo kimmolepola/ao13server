@@ -331,6 +331,11 @@ export const gatherStateData = (
     localOffset++;
   };
 
+  const setInt8 = (value: number) => {
+    view.setInt8(offset + localOffset, value);
+    localOffset++;
+  };
+
   const setUint16 = (value: number) => {
     view.setUint16(offset + localOffset, value);
     localOffset += 2;
@@ -361,7 +366,7 @@ export const gatherStateData = (
     yBytes
   );
   rotationZHasChanged && setUint16(rotationZ);
-  rotationSpeedHasChanged && setUint8(rotationSpeed);
+  rotationSpeedHasChanged && setInt8(rotationSpeed);
 
   // ---values 2---
   speedHasChanged && setUint16(speed);
@@ -371,7 +376,7 @@ export const gatherStateData = (
 
   // ---values 3---
   inputs2HasChanged && setUint8(inputs2 || 0);
-  verticalSpeedHasChanged && setUint8(verticalSpeed);
+  verticalSpeedHasChanged && setInt8(verticalSpeed);
   zHasChanged && setUint16(z);
   ordnanceChannel1HasChanged && setUint8(ordnanceChannel1.byte1);
   ordnanceChannel1HasChanged &&
