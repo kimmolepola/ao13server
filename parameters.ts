@@ -51,12 +51,12 @@ const millisecondsInHour = 1000 * 60 * 60;
 const metersInKm = 1000;
 export const speedFactor =
   ((1 / millisecondsInHour) * metersInKm) / oneDistanceUnitInMeters;
-export const forceUpToSpeedFactor = 0.14;
-export const forceDownToSpeedFactor = 0.14;
+export const forceUpToSpeedFactor = 0.28;
+export const forceDownToSpeedFactor = 0.28;
 
 export const maxRotationSpeedAbsolute = 127;
-export const rotationFactor = 0.00001;
-export const forceLeftOrRightToRotationFactor = 0.1;
+export const rotationFactor = 0.00002;
+export const forceLeftOrRightToRotationFactor = 0.2;
 
 export const maxVerticalSpeedAbsolute = 127;
 export const verticalSpeedFactor = 0.001;
