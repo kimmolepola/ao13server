@@ -13,7 +13,7 @@ import * as utils from "../utils";
 const object3d = utils.object3d;
 const axis = utils.AXIS_Z;
 let currentTick = 0;
-let oldestInputTick = 0;
+let oldestInputTick: number | null = null;
 
 // outer array index is tickNumber
 // inner array index is idOverNetwork
@@ -156,7 +156,7 @@ export const receiveInputData = (remoteId: string, data: types.InputsData) => {
     r.byte1 = data.byte1;
     r.byte2 = data.byte2;
 
-    if (seqLess(t, oldestInputTick)) {
+    if (oldestInputTick === null || seqLess(t, oldestInputTick)) {
       oldestInputTick = t;
     }
     // receivedInputTicknumbers[sharedObject.idOverNetwork]?.push(t);
@@ -401,6 +401,7 @@ const simulate = (tickNumber: number, isRollback: boolean) => {
 
 const performRollback = (tickNumber: number, oldestInputTick: number) => {
   let s = oldestInputTick;
+  console.log("--rollback:", s, tickNumber);
   while (true) {
     if (s === tickNumber) break;
     simulate(s, true);
@@ -443,11 +444,11 @@ export const runTick = (tickNumber: number) => {
   tickNumber === 1 && tickBuffer[0]++;
   currentTick = tickNumber;
   handleNewSequence(tickNumber);
-  if (seqLess(oldestInputTick, tickNumber)) {
+  if (oldestInputTick !== null && seqLess(oldestInputTick, tickNumber)) {
     performRollback(tickNumber, oldestInputTick);
   }
   simulate(tickNumber, false);
-  oldestInputTick = tickNumber;
+  oldestInputTick = null;
   handleReceivedEvents();
   sendState();
   // resetReceivedInputTicknumbers();
