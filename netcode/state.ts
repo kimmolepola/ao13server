@@ -228,6 +228,7 @@ export const gatherStateData = (
   const fuelByte = (o.fuel * parameters.fuelToNetworkRatio) & 0xff;
   // console.log("--o:", o);
   encodeOrdnance(0, o.bullets, ordnanceChannel1);
+  encodeOrdnance(0, 0, ordnanceChannel2); // TODO: content
   // console.log("--ord:", o.bullets, ordnanceChannel1.byte1);
   const xBytes = getUint8Bytes(x);
   const yBytes = getUint8Bytes(y);
@@ -397,9 +398,6 @@ export const gatherStateData = (
   speedHasChanged && setUint16(speed);
   eventsHasChanged && setUint8(eventsEncoded);
   healthHasChanged && setUint8(healthByte);
-  if (healthHasChanged) {
-    console.log("--healthByte:", healthByte, o.health);
-  }
   fuelHasChanged && setUint8(fuelByte);
 
   // ---values 3---
