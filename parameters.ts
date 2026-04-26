@@ -69,3 +69,4 @@ export const bulletTimeToLive = 3000;
 
 export const maxFuelKg = 8200;
 export const fuelToNetworkRatio = 255 / maxFuelKg;
+export const maxBullets = 480;

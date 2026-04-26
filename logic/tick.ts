@@ -308,7 +308,9 @@ const handleSharedObjects = (tickNumber: number, isRollback: boolean) => {
     const c = currentState[i];
     const p = previousState[i];
     const playerCurInputs = currentInputs[i];
-    if (p.exists) {
+    if (!p.exists) {
+      c.exists = false;
+    } else {
       c.exists = true;
       c.id = p.id;
       c.isPlayer = p.isPlayer;
@@ -316,6 +318,7 @@ const handleSharedObjects = (tickNumber: number, isRollback: boolean) => {
       c.health = p.health;
       c.type = p.type;
       c.score = p.score;
+      c.bullets = p.bullets;
       handleMovement(c, p, playerCurInputs, prevInputs[i], prevPrevInputs[i]);
       handleShot(tickNumber, c, p, playerCurInputs, gameEventHandler);
       checkCollisions(
@@ -351,7 +354,7 @@ const handleSharedObjects = (tickNumber: number, isRollback: boolean) => {
         pppOrdnance2Event && (eventsEncoded |= 0b01000000);
         ppppOrdnance2Event && (eventsEncoded |= 0b10000000);
 
-        gatherStateData(i, c, input, eventsEncoded, tickNumber);
+        gatherStateData(i, c, input, eventsEncoded, tickNumber, previousState);
         const tickNumPastRollback = seq8Sub(
           tickNumber,
           parameters.maxRollback + 1
@@ -424,7 +427,7 @@ const handleRemoveId = (id: string) => {
 const handleReceivedEvents = () => {
   for (let i = 0; i < receivedEvents.length; i++) {
     const e = receivedEvents[i];
-    console.log("--e:", e);
+    // console.log("--e:", e);
     switch (e.type) {
       case types.ReceivedEventType.NewId:
         handleNewId(e.data);
@@ -439,9 +442,7 @@ const handleReceivedEvents = () => {
   receivedEvents.length = 0;
 };
 
-const tickBuffer = new Uint8Array(1);
 export const runTick = (tickNumber: number) => {
-  tickNumber === 1 && tickBuffer[0]++;
   currentTick = tickNumber;
   handleNewSequence(tickNumber);
   if (oldestInputTick !== null && seqLess(oldestInputTick, tickNumber)) {

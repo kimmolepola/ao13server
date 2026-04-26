@@ -16,12 +16,7 @@ export const gameEventHandler = async (gameEvent: types.GameEvent) => {
   switch (gameEvent.type) {
     case types.EventType.RemoveId: {
       handleRemoveId(gameEvent.data);
-      const removeIndex = globals.state.sharedObjectInfo.findIndex(
-        (x) => x.id === gameEvent.data.id
-      );
-      removeIndex !== -1 &&
-        globals.state.sharedObjectInfo.splice(removeIndex, 1);
-      delete globals.state.sharedObjectInfoById[gameEvent.data.id];
+
       break;
     }
     case types.EventType.NewId: {
@@ -30,6 +25,8 @@ export const gameEventHandler = async (gameEvent: types.GameEvent) => {
       if (freeObject) {
         resetRecentStates();
         await insertNewObject(data.id, freeObject);
+        console.log("--newId:", data.id);
+        // console.log("--free:", freeObject);
         handleSendBaseState(data.currentState);
         const obj = {
           id: freeObject.id,
@@ -55,6 +52,7 @@ export const gameEventHandler = async (gameEvent: types.GameEvent) => {
       break;
     }
     case types.EventType.Shot: {
+      console.log("--event shot");
       const o = gameEvent.data.gameObject;
       const localObjects = gameEvent.data.tickLocalObjects;
       if (o.bullets >= 1) {
@@ -127,6 +125,11 @@ const handleRemoveId = (data: {
     savePlayerData(data.currentState);
     handleSendBaseState(data.currentState);
   }
+  const removeIndex = globals.state.sharedObjectInfo.findIndex(
+    (x) => x.id === data.id
+  );
+  removeIndex !== -1 && globals.state.sharedObjectInfo.splice(removeIndex, 1);
+  delete globals.state.sharedObjectInfoById[data.id];
 };
 
 const idFailure = (id: string) => {
@@ -155,7 +158,7 @@ const insertNewObject = async (
   o.type = types.GameObjectType.Fighter as const;
   o.speed = parameters.initialSpeed;
   o.fuel = parameters.maxFuelKg;
-  o.bullets = 480;
+  o.bullets = parameters.maxBullets;
   o.rotationSpeed = 0;
   o.verticalSpeed = 0;
   o.x = 0;

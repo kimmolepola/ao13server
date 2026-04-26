@@ -178,13 +178,23 @@ function sameIntegerPart(a: number, b: number) {
   return (a | 0) === (b | 0);
 }
 
+let prevRotZ = 0;
+let prevORotZ = 0;
 export const gatherStateData = (
   index: number,
   tickStateObject: types.TickStateObject,
   objectInputs: types.InputsWithBytes,
   eventsEncoded: number,
-  sequenceNumber: number
+  sequenceNumber: number,
+  debugPreviousState: types.TickStateObject[]
 ) => {
+  offset !== 1 &&
+    console.log(
+      "--offset:",
+      offset,
+      globals.state.sharedObjectInfoById,
+      debugPreviousState.map((x) => x.id)
+    );
   const o = tickStateObject;
 
   const idOverNetwork = o.idOverNetwork;
@@ -193,6 +203,11 @@ export const gatherStateData = (
   const z = o.z;
 
   const rotationZ = encodeRotationZ(o.rotationZ);
+  if (o.rotationZ !== prevORotZ || rotationZ !== prevRotZ) {
+    prevORotZ = o.rotationZ;
+    prevRotZ = rotationZ;
+    console.log("--o:", o);
+  }
   const speed = o.speed;
   // if (prevSpeed.toFixed(2) !== speed.toFixed(2)) {
   //   console.log(
@@ -209,8 +224,11 @@ export const gatherStateData = (
   const inputs2 = objectInputs.byte2;
 
   const healthByte = o.health & 0xff;
+  // console.log("--health:", o.health, healthByte);
   const fuelByte = (o.fuel * parameters.fuelToNetworkRatio) & 0xff;
+  // console.log("--o:", o);
   encodeOrdnance(0, o.bullets, ordnanceChannel1);
+  // console.log("--ord:", o.bullets, ordnanceChannel1.byte1);
   const xBytes = getUint8Bytes(x);
   const yBytes = getUint8Bytes(y);
 
@@ -323,7 +341,18 @@ export const gatherStateData = (
   let localOffset = 0;
 
   const setUint8 = (value: number) => {
-    view.setUint8(offset + localOffset, value);
+    try {
+      view.setUint8(offset + localOffset, value);
+    } catch (e: any) {
+      console.error(
+        "--setUint8 error:",
+        offset,
+        localOffset,
+        offset + localOffset,
+        value,
+        view.byteLength
+      );
+    }
     localOffset++;
   };
 
@@ -368,6 +397,9 @@ export const gatherStateData = (
   speedHasChanged && setUint16(speed);
   eventsHasChanged && setUint8(eventsEncoded);
   healthHasChanged && setUint8(healthByte);
+  if (healthHasChanged) {
+    console.log("--healthByte:", healthByte, o.health);
+  }
   fuelHasChanged && setUint8(fuelByte);
 
   // ---values 3---
