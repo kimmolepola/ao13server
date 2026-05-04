@@ -250,12 +250,13 @@ const handleShot = (
   const p = previousTickObject;
 
   c.ordnance1Event = false;
-  let delay = p.shotDelay;
-  delay -= parameters.tickInterval;
-  if (delay <= 0) {
+  if (c.shotDelay > 0) {
+    c.shotDelay -= parameters.tickInterval;
+  }
+  if (c.shotDelay <= 0) {
     if (inputs.inputs.space) {
       // shoot
-      delay += parameters.shotDelay;
+      c.shotDelay += parameters.shotDelay;
       c.ordnance1Event = true;
       gameEventHandler({
         type: types.EventType.Shot,
@@ -266,10 +267,6 @@ const handleShot = (
       });
     }
   }
-  if (delay >= -parameters.shotDelay) {
-    delay -= parameters.tickInterval;
-  }
-  c.shotDelay = delay;
 };
 
 const resetInputs = (tickNum: number, idOverNetwork: number) => {

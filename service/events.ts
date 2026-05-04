@@ -39,6 +39,10 @@ export const gameEventHandler = async (gameEvent: types.GameEvent) => {
         globals.queue.push(data.id);
         handleSendQueue(data.id);
       }
+      console.log(
+        "--globals.state.sharedObjectInfo:",
+        globals.state.sharedObjectInfo
+      );
       break;
     }
     case types.EventType.HealthZero: {

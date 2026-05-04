@@ -178,6 +178,7 @@ function sameIntegerPart(a: number, b: number) {
   return (a | 0) === (b | 0);
 }
 
+let debugId = 0;
 let prevRotZ = 0;
 let prevORotZ = 0;
 export const gatherStateData = (
@@ -188,13 +189,13 @@ export const gatherStateData = (
   sequenceNumber: number,
   debugPreviousState: types.TickStateObject[]
 ) => {
-  offset !== 1 &&
-    console.log(
-      "--offset:",
-      offset,
-      globals.state.sharedObjectInfoById,
-      debugPreviousState.map((x) => x.id)
-    );
+  // offset !== 1 &&
+  //   console.log(
+  //     "--offset:",
+  //     offset,
+  //     globals.state.sharedObjectInfoById,
+  //     debugPreviousState.map((x) => x.id)
+  //   );
   const o = tickStateObject;
 
   const idOverNetwork = o.idOverNetwork;
@@ -203,11 +204,14 @@ export const gatherStateData = (
   const z = o.z;
 
   const rotationZ = encodeRotationZ(o.rotationZ);
-  if (o.rotationZ !== prevORotZ || rotationZ !== prevRotZ) {
-    prevORotZ = o.rotationZ;
-    prevRotZ = rotationZ;
-    console.log("--o:", o);
-  }
+  // if (
+  //   o.idOverNetwork === debugId &&
+  //   (o.rotationZ !== prevORotZ || rotationZ !== prevRotZ)
+  // ) {
+  //   prevORotZ = o.rotationZ;
+  //   prevRotZ = rotationZ;
+  //   console.log("--o:", o.idOverNetwork, o.rotationZ);
+  // }
   const speed = o.speed;
   // if (prevSpeed.toFixed(2) !== speed.toFixed(2)) {
   //   console.log(
