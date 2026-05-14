@@ -138,41 +138,13 @@ export const handleNewSequence = (sequenceNumber: number) => {
   view.setUint8(0, sequenceNumber);
 };
 
-const ordnanceChannel1 = { byte1: 0, byte2: 0, fitsInOneByte: false };
-const ordnanceChannel2 = { byte1: 0, byte2: 0, fitsInOneByte: false };
+const ordnanceChannel1 = { id: 0, byte1: 0, byte2: 0 };
+const ordnanceChannel2 = { id: 1, byte1: 0, byte2: 0 };
 const encodeOrdnance = (
-  objectId: number,
-  objectValue: number,
-  out: { byte1: number; byte2: number; fitsInOneByte: boolean }
-) => {
-  // --- validation (optional but safe) ---
-  if (objectId < 0 || objectId > 7) throw new Error("objectId must be 0-7");
-  if (objectValue < 0 || objectValue > 4095)
-    throw new Error("objectValue must be 0-4095, objectValue: " + objectValue);
-
-  // Check if value fits in 4 bits → 1 byte
-  const fitsInOneByte = objectValue <= 0x0f;
-
-  if (fitsInOneByte) {
-    // id in bits 7–5, flag=0 in bit 4, value in bits 3–0
-    const byte = (objectId << 5) | (0 << 4) | (objectValue & 0x0f);
-    out.byte1 = byte;
-    out.byte2 = 0;
-    out.fitsInOneByte = true;
-    return;
-  }
-
-  // Otherwise: 2‑byte encoding
-  // byte1: id(3 bits), flag=1, high 4 bits of value
-  const byte1 = (objectId << 5) | (1 << 4) | ((objectValue >> 8) & 0x0f);
-
-  // byte2: low 8 bits of value
-  const byte2 = objectValue & 0xff;
-
-  out.byte1 = byte1;
-  out.byte2 = byte2;
-  out.fitsInOneByte = false;
-};
+  id: number,
+  value: number,
+  out: { id: number; byte1: number; byte2: number }
+) => {};
 
 function sameIntegerPart(a: number, b: number) {
   return (a | 0) === (b | 0);
@@ -185,9 +157,13 @@ export const gatherStateData = (
   index: number,
   tickStateObject: types.TickStateObject,
   objectInputs: types.InputsWithBytes,
-  eventsEncoded: number,
   sequenceNumber: number,
-  debugPreviousState: types.TickStateObject[]
+  pSeq: number,
+  ppSeq: number,
+  pppSeq: number,
+  ppppSeq: number,
+  debugPreviousState: types.TickStateObject[],
+  ticks: types.TickStateObject[][]
 ) => {
   // offset !== 1 &&
   //   console.log(
@@ -196,6 +172,127 @@ export const gatherStateData = (
   //     globals.state.sharedObjectInfoById,
   //     debugPreviousState.map((x) => x.id)
   //   );
+
+  const pObj = ticks[pSeq][index];
+  const ppObj = ticks[ppSeq][index];
+  const pppObj = ticks[pppSeq][index];
+  const ppppObj = ticks[ppppSeq][index];
+
+  const pOrdnance1Id = pObj.ordnance1Id;
+  const ppOrdnance1Id = ppObj.ordnance1Id;
+  const pppOrdnance1Id = pppObj.ordnance1Id;
+  const ppppOrdnance1Id = ppppObj.ordnance1Id;
+
+  const pOrdnance2Id = pObj.ordnance2Id;
+  const ppOrdnance2Id = ppObj.ordnance2Id;
+  const pppOrdnance2Id = pppObj.ordnance2Id;
+  const ppppOrdnance2Id = ppppObj.ordnance2Id;
+
+  const pOrdnance1Event = pObj.ordnance1Event;
+  const ppOrdnance1Event = ppObj.ordnance1Event;
+  const pppOrdnance1Event = pppObj.ordnance1Event;
+  const ppppOrdnance1Event = ppppObj.ordnance1Event;
+
+  const pOrdnance2Event = pObj.ordnance2Event;
+  const ppOrdnance2Event = ppObj.ordnance2Event;
+  const pppOrdnance2Event = pppObj.ordnance2Event;
+  const ppppOrdnance2Event = ppppObj.ordnance2Event;
+
+  let eventsEncoded = 0b00000000;
+
+  pOrdnance1Event && (eventsEncoded |= 0b00000001);
+  ppOrdnance1Event && (eventsEncoded |= 0b00000010);
+  pppOrdnance1Event && (eventsEncoded |= 0b00000100);
+  ppppOrdnance1Event && (eventsEncoded |= 0b00001000);
+
+  pOrdnance2Event && (eventsEncoded |= 0b00010000);
+  ppOrdnance2Event && (eventsEncoded |= 0b00100000);
+  pppOrdnance2Event && (eventsEncoded |= 0b01000000);
+  ppppOrdnance2Event && (eventsEncoded |= 0b10000000);
+
+  let ordnance1EventId1 = undefined;
+  let ordnance1EventId2 = undefined;
+  let ordnance1EventId3 = undefined;
+  let ordnance1EventId4 = undefined;
+  let ordnance2EventId1 = undefined;
+  let ordnance2EventId2 = undefined;
+  let ordnance2EventId3 = undefined;
+  let ordnance2EventId4 = undefined;
+
+  if (pOrdnance1Event) ordnance1EventId1 = pOrdnance1Id;
+
+  if (ppOrdnance1Event) {
+    if (ordnance1EventId1 === undefined) ordnance1EventId1 = ppOrdnance1Id;
+    else ordnance1EventId2 = ppOrdnance1Id;
+  }
+
+  if (pppOrdnance1Event) {
+    if (ordnance1EventId1 === undefined) ordnance1EventId1 = pppOrdnance1Id;
+    else if (ordnance1EventId2 === undefined)
+      ordnance1EventId2 = pppOrdnance1Id;
+    else ordnance1EventId3 = pppOrdnance1Id;
+  }
+
+  if (ppppOrdnance1Event) {
+    if (ordnance1EventId1 === undefined) ordnance1EventId1 = ppppOrdnance1Id;
+    else if (ordnance1EventId2 === undefined)
+      ordnance1EventId2 = ppppOrdnance1Id;
+    else if (ordnance1EventId3 === undefined)
+      ordnance1EventId3 = ppppOrdnance1Id;
+    else ordnance1EventId4 = ppppOrdnance1Id;
+  }
+
+  if (pOrdnance2Event) ordnance2EventId1 = pOrdnance2Id;
+
+  if (ppOrdnance2Event) {
+    if (ordnance2EventId1 === undefined) ordnance2EventId1 = ppOrdnance2Id;
+    else ordnance2EventId2 = ppOrdnance2Id;
+  }
+
+  if (pppOrdnance2Event) {
+    if (ordnance2EventId1 === undefined) ordnance2EventId1 = pppOrdnance2Id;
+    else if (ordnance2EventId2 === undefined)
+      ordnance2EventId2 = pppOrdnance2Id;
+    else ordnance2EventId3 = pppOrdnance2Id;
+  }
+
+  if (ppppOrdnance2Event) {
+    if (ordnance2EventId1 === undefined) ordnance2EventId1 = ppppOrdnance2Id;
+    else if (ordnance2EventId2 === undefined)
+      ordnance2EventId2 = ppppOrdnance2Id;
+    else if (ordnance2EventId3 === undefined)
+      ordnance2EventId3 = ppppOrdnance2Id;
+    else ordnance2EventId4 = ppppOrdnance2Id;
+  }
+
+  const ordnance1SomeDefinedId =
+    ordnance1EventId1 ??
+    ordnance1EventId2 ??
+    ordnance1EventId3 ??
+    ordnance1EventId4;
+
+  const ordnance2SomeDefinedId =
+    ordnance2EventId1 ??
+    ordnance2EventId2 ??
+    ordnance2EventId3 ??
+    ordnance2EventId4;
+
+  const ordnance1AllDefinedIdsSame =
+    (ordnance1EventId2 === undefined ||
+      ordnance1EventId2 === ordnance1SomeDefinedId) &&
+    (ordnance1EventId3 === undefined ||
+      ordnance1EventId3 === ordnance1SomeDefinedId) &&
+    (ordnance1EventId4 === undefined ||
+      ordnance1EventId4 === ordnance1SomeDefinedId);
+
+  const ordnance2AllDefinedIdsSame =
+    (ordnance2EventId2 === undefined ||
+      ordnance2EventId2 === ordnance2SomeDefinedId) &&
+    (ordnance2EventId3 === undefined ||
+      ordnance2EventId3 === ordnance2SomeDefinedId) &&
+    (ordnance2EventId4 === undefined ||
+      ordnance2EventId4 === ordnance2SomeDefinedId);
+
   const o = tickStateObject;
 
   const idOverNetwork = o.idOverNetwork;
@@ -232,7 +329,7 @@ export const gatherStateData = (
   const fuelByte = (o.fuel * parameters.fuelToNetworkRatio) & 0xff;
   // console.log("--o:", o);
   encodeOrdnance(0, o.bullets, ordnanceChannel1);
-  encodeOrdnance(0, 0, ordnanceChannel2); // TODO: content
+  encodeOrdnance(1, 0, ordnanceChannel2); // TODO: content
   // console.log("--ord:", o.bullets, ordnanceChannel1.byte1);
   const xBytes = getUint8Bytes(x);
   const yBytes = getUint8Bytes(y);
@@ -241,6 +338,7 @@ export const gatherStateData = (
   let inputs1HasChanged = true;
   let inputs2HasChanged = true;
   let eventsHasChanged = true;
+  let eventsIdsHasChanged = true;
   let healthHasChanged = true;
   let zHasChanged = true;
   let rotationZHasChanged = true;
@@ -248,7 +346,9 @@ export const gatherStateData = (
   let xDifferenceSignificance = 4;
   let yDifferenceSignificance = 4;
   let ordnanceChannel1HasChanged = true;
+  let ordnanceChannel1Byte2HasChanged = true;
   let ordnanceChannel2HasChanged = true;
+  let ordnanceChannel2Byte2HasChanged = true;
   let fuelHasChanged = true;
   let speedHasChanged = true;
   let verticalSpeedHasChanged = true;
@@ -279,10 +379,20 @@ export const gatherStateData = (
     // 3
     sameIntegerPart(speed, oState.speed) && (speedHasChanged = false);
     // 4
-    eventsEncoded === oState.eventsEncoded && (eventsHasChanged = false);
+    ordnance1EventId1 === oState.ordnance1EventId1 &&
+      ordnance1EventId2 === oState.ordnance1EventId2 &&
+      ordnance1EventId3 === oState.ordnance1EventId3 &&
+      ordnance1EventId4 === oState.ordnance1EventId4 &&
+      ordnance2EventId1 === oState.ordnance2EventId1 &&
+      ordnance2EventId2 === oState.ordnance2EventId2 &&
+      ordnance2EventId3 === oState.ordnance2EventId3 &&
+      ordnance2EventId4 === oState.ordnance2EventId4 &&
+      (eventsIdsHasChanged = false);
     // 5
-    healthByte === oState.health && (healthHasChanged = false);
+    eventsEncoded === oState.eventsEncoded && (eventsHasChanged = false);
     // 6
+    healthByte === oState.health && (healthHasChanged = false);
+    // 7
     fuelByte === oState.fuel && (fuelHasChanged = false);
 
     // ---values 3---
@@ -294,13 +404,19 @@ export const gatherStateData = (
     // 3
     sameIntegerPart(z, oState.z) && (zHasChanged = false);
     // 4
-    ordnanceChannel1.byte1 === oState.ordnanceChannel1.byte1 &&
+    ordnanceChannel1.id === oState.ordnanceChannel1.id &&
+      ordnanceChannel1.byte1 === oState.ordnanceChannel1.byte1 &&
       ordnanceChannel1.byte2 === oState.ordnanceChannel1.byte2 &&
       (ordnanceChannel1HasChanged = false);
+    ordnanceChannel1.byte2 === oState.ordnanceChannel1.byte2 &&
+      (ordnanceChannel1Byte2HasChanged = false);
     // 5
-    ordnanceChannel2.byte1 === oState.ordnanceChannel2.byte1 &&
+    ordnanceChannel2.id === oState.ordnanceChannel2.id &&
+      ordnanceChannel2.byte1 === oState.ordnanceChannel2.byte1 &&
       ordnanceChannel2.byte2 === oState.ordnanceChannel2.byte2 &&
       (ordnanceChannel2HasChanged = false);
+    ordnanceChannel2.byte2 === oState.ordnanceChannel2.byte2 &&
+      (ordnanceChannel2Byte2HasChanged = false);
   }
 
   // ---values 3---
@@ -317,8 +433,9 @@ export const gatherStateData = (
   indexHasChanged && (providedValues9to16 |= 0b00000010);
   speedHasChanged && (providedValues9to16 |= 0b00000100);
   eventsHasChanged && (providedValues9to16 |= 0b00001000);
-  healthHasChanged && (providedValues9to16 |= 0b00010000);
-  fuelHasChanged && (providedValues9to16 |= 0b00100000);
+  eventsIdsHasChanged && (providedValues9to16 |= 0b00010000);
+  healthHasChanged && (providedValues9to16 |= 0b00100000);
+  fuelHasChanged && (providedValues9to16 |= 0b01000000);
 
   // ---values 1---
   let providedValues1to8 = 0b00000000;
@@ -400,6 +517,24 @@ export const gatherStateData = (
 
   // ---values 2---
   speedHasChanged && setUint16(speed);
+  if (eventsIdsHasChanged) {
+    if (ordnance1AllDefinedIdsSame) {
+      ordnance1SomeDefinedId !== undefined && setUint8(ordnance1SomeDefinedId);
+    } else {
+      ordnance1EventId1 !== undefined && setUint8(ordnance1EventId1);
+      ordnance1EventId2 !== undefined && setUint8(ordnance1EventId2);
+      ordnance1EventId3 !== undefined && setUint8(ordnance1EventId3);
+      ordnance1EventId4 !== undefined && setUint8(ordnance1EventId4);
+    }
+    if (ordnance2AllDefinedIdsSame) {
+      ordnance2SomeDefinedId !== undefined && setUint8(ordnance2SomeDefinedId);
+    } else {
+      ordnance2EventId1 !== undefined && setUint8(ordnance2EventId1);
+      ordnance2EventId2 !== undefined && setUint8(ordnance2EventId2);
+      ordnance2EventId3 !== undefined && setUint8(ordnance2EventId3);
+      ordnance2EventId4 !== undefined && setUint8(ordnance2EventId4);
+    }
+  }
   eventsHasChanged && setUint8(eventsEncoded);
   healthHasChanged && setUint8(healthByte);
   fuelHasChanged && setUint8(fuelByte);
@@ -408,14 +543,12 @@ export const gatherStateData = (
   inputs2HasChanged && setUint8(inputs2 || 0);
   verticalSpeedHasChanged && setInt8(verticalSpeed);
   zHasChanged && setUint16(z);
+  ordnanceChannel1HasChanged && setUint8(ordnanceChannel1.id);
   ordnanceChannel1HasChanged && setUint8(ordnanceChannel1.byte1);
-  ordnanceChannel1HasChanged &&
-    !ordnanceChannel1.fitsInOneByte &&
-    setUint8(ordnanceChannel1.byte2);
+  ordnanceChannel1Byte2HasChanged && setUint8(ordnanceChannel1.byte2);
+  ordnanceChannel2HasChanged && setUint8(ordnanceChannel2.id);
   ordnanceChannel2HasChanged && setUint8(ordnanceChannel2.byte1);
-  ordnanceChannel2HasChanged &&
-    !ordnanceChannel2.fitsInOneByte &&
-    setUint8(ordnanceChannel2.byte2);
+  ordnanceChannel2Byte2HasChanged && setUint8(ordnanceChannel2.byte2);
 
   offset += localOffset;
 
@@ -459,6 +592,14 @@ export const gatherStateData = (
         // ---values 2---
         idOverNetwork,
         speed,
+        ordnance1EventId1,
+        ordnance1EventId2,
+        ordnance1EventId3,
+        ordnance1EventId4,
+        ordnance2EventId1,
+        ordnance2EventId2,
+        ordnance2EventId3,
+        ordnance2EventId4,
         eventsEncoded,
         health: healthByte,
         fuel: fuelByte,
@@ -468,10 +609,12 @@ export const gatherStateData = (
         verticalSpeed,
         z,
         ordnanceChannel1: {
+          id: ordnanceChannel1.id,
           byte1: ordnanceChannel1.byte1,
           byte2: ordnanceChannel1.byte2,
         },
         ordnanceChannel2: {
+          id: ordnanceChannel2.id,
           byte1: ordnanceChannel2.byte1,
           byte2: ordnanceChannel2.byte2,
         },

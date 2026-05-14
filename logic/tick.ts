@@ -53,7 +53,9 @@ const getInitialTickStateObject = (id: number) => {
     shotDelay: 0,
     fuel: 0,
     bullets: 0,
+    ordnance1Id: 0,
     ordnance1Event: false,
+    ordnance2Id: 1,
     ordnance2Event: false,
   };
   return obj;
@@ -141,6 +143,7 @@ export const receiveInputData = (remoteId: string, data: types.InputsData) => {
   const t = data.tickNumber;
   if (!isWithinMaxRollback(t, currentTick)) return;
 
+  console.log("--receive:", t);
   const sharedObject = globals.state.sharedObjectInfoById[remoteId];
   if (sharedObject) {
     const d = data.inputs;
@@ -242,12 +245,10 @@ const handleMovement = (
 const handleShot = (
   currentTickNumber: number,
   currentTickObject: types.TickStateObject,
-  previousTickObject: types.TickStateObject,
   inputs: types.InputsWithBytes,
   gameEventHandler: types.GameEventHandler
 ) => {
   const c = currentTickObject;
-  const p = previousTickObject;
 
   c.ordnance1Event = false;
   if (c.shotDelay > 0) {
@@ -257,12 +258,14 @@ const handleShot = (
     if (inputs.inputs.space) {
       // shoot
       c.shotDelay += parameters.shotDelay;
+      c.ordnance1Id = 0;
       c.ordnance1Event = true;
       gameEventHandler({
         type: types.EventType.Shot,
         data: {
           gameObject: c,
           tickLocalObjects: localObjects[currentTickNumber],
+          currentTickNumber,
         },
       });
     }
@@ -294,6 +297,8 @@ export function seq8Sub(seq: number, value: number): number {
 const handleSharedObjects = (tickNumber: number, isRollback: boolean) => {
   const pSeq = getPrevSeq(tickNumber);
   const ppSeq = getPrevSeq(pSeq);
+  const pppSeq = getPrevSeq(ppSeq);
+  const ppppSeq = getPrevSeq(pppSeq);
 
   const currentState = ticks[tickNumber];
   const previousState = ticks[pSeq];
@@ -317,7 +322,7 @@ const handleSharedObjects = (tickNumber: number, isRollback: boolean) => {
       c.score = p.score;
       c.bullets = p.bullets;
       handleMovement(c, p, playerCurInputs, prevInputs[i], prevPrevInputs[i]);
-      handleShot(tickNumber, c, p, playerCurInputs, gameEventHandler);
+      handleShot(tickNumber, c, playerCurInputs, gameEventHandler);
       checkCollisions(
         i,
         c,
@@ -330,28 +335,18 @@ const handleSharedObjects = (tickNumber: number, isRollback: boolean) => {
         const idN = c.idOverNetwork;
         const input = receivedInputs[tickNumber][idN];
 
-        const pppSeq = getPrevSeq(ppSeq);
-        const ppppSeq = getPrevSeq(pppSeq);
-        const pOrdnance1Event = ticks[pSeq][i].ordnance1Event;
-        const ppOrdnance1Event = ticks[ppSeq][i].ordnance1Event;
-        const pppOrdnance1Event = ticks[pppSeq][i].ordnance1Event;
-        const ppppOrdnance1Event = ticks[ppppSeq][i].ordnance1Event;
-        const pOrdnance2Event = ticks[pSeq][i].ordnance2Event;
-        const ppOrdnance2Event = ticks[ppSeq][i].ordnance2Event;
-        const pppOrdnance2Event = ticks[pppSeq][i].ordnance2Event;
-        const ppppOrdnance2Event = ticks[ppppSeq][i].ordnance2Event;
-
-        let eventsEncoded = 0b00000000;
-        pOrdnance1Event && (eventsEncoded |= 0b00000001);
-        ppOrdnance1Event && (eventsEncoded |= 0b00000010);
-        pppOrdnance1Event && (eventsEncoded |= 0b00000100);
-        ppppOrdnance1Event && (eventsEncoded |= 0b00001000);
-        pOrdnance2Event && (eventsEncoded |= 0b00010000);
-        ppOrdnance2Event && (eventsEncoded |= 0b00100000);
-        pppOrdnance2Event && (eventsEncoded |= 0b01000000);
-        ppppOrdnance2Event && (eventsEncoded |= 0b10000000);
-
-        gatherStateData(i, c, input, eventsEncoded, tickNumber, previousState);
+        gatherStateData(
+          i,
+          c,
+          input,
+          tickNumber,
+          pSeq,
+          ppSeq,
+          pppSeq,
+          ppppSeq,
+          previousState,
+          ticks
+        );
         const tickNumPastRollback = seq8Sub(
           tickNumber,
           parameters.maxRollback + 1
@@ -448,6 +443,7 @@ export const runTick = (tickNumber: number) => {
   simulate(tickNumber, false);
   oldestInputTick = null;
   handleReceivedEvents();
+  // console.log("--currentTick:", currentTick);
   sendState();
   // resetReceivedInputTicknumbers();
 };

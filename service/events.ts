@@ -56,7 +56,7 @@ export const gameEventHandler = async (gameEvent: types.GameEvent) => {
       break;
     }
     case types.EventType.Shot: {
-      console.log("--event shot");
+      console.log("--event shot", gameEvent.data.currentTickNumber);
       const o = gameEvent.data.gameObject;
       const localObjects = gameEvent.data.tickLocalObjects;
       if (o.bullets >= 1) {
