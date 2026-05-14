@@ -370,31 +370,7 @@ export const unreliableStateSingleObjectMaxBytes = 38;
 //     Uint8*2 rotationZ?                                                                     15
 //     Uint8 rotationSpeed?                                                                   16
 //     Uint8*2 speed?                                                                         18
-//     Uint8 ordnance1EventId1?                                                                    19
-//       1: id part 1                                                                         |
-//       2: id part 2                                                                         |
-//       3: id part 3                                                                         |
-//       4: id part 4                                                                         |
-//       5: id part 5                                                                         |
-//       6: id part 6                                                                         |
-//       7: id part 7 (7 bit max value 127)                                                   |
-//       8: all ordnance1 ids same                                                            |
-//     Uint8 ordnance1EventId2?                                                                    20
-//     Uint8 ordnance1EventId3?                                                                    21
-//     Uint8 ordnance1EventId4?                                                                    22
-//     Uint8 ordnance2EventId1?                                                                    23
-//       1: id part 1                                                                         |
-//       2: id part 2                                                                         |
-//       3: id part 3                                                                         |
-//       4: id part 4                                                                         |
-//       5: id part 5                                                                         |
-//       6: id part 6                                                                         |
-//       7: id part 7 (7 bit max value 127)                                                   |
-//       8: all ordnance2 ids same                                                            |
-//     Uint8 ordnance2EventId2?                                                                    24
-//     Uint8 ordnance2EventId3?                                                                    25
-//     Uint8 ordnance2EventId4?                                                                    26
-//     Uint8 events?                                                                          27
+//     Uint8 events?                                                                          19
 //       1: pOrdnance1Event                                                                   |
 //       2: ppOrdnance1Event                                                                  |
 //       3: pppOrdnance1Event                                                                 |
@@ -403,6 +379,30 @@ export const unreliableStateSingleObjectMaxBytes = 38;
 //       6: ppOrdnance2Event                                                                  |
 //       7: pppOrdnance2Event                                                                 |
 //       8: ppppOrdnance2Event                                                                |
+//     Uint8 ordnance1EventId1?                                                               20
+//       1: id part 1                                                                         |
+//       2: id part 2                                                                         |
+//       3: id part 3                                                                         |
+//       4: id part 4                                                                         |
+//       5: id part 5                                                                         |
+//       6: id part 6                                                                         |
+//       7: id part 7 (7 bit max value 127)                                                   |
+//       8: all ordnance1 ids same                                                            |
+//     Uint8 ordnance1EventId2?                                                               21
+//     Uint8 ordnance1EventId3?                                                               22
+//     Uint8 ordnance1EventId4?                                                               23
+//     Uint8 ordnance2EventId1?                                                               24
+//       1: id part 1                                                                         |
+//       2: id part 2                                                                         |
+//       3: id part 3                                                                         |
+//       4: id part 4                                                                         |
+//       5: id part 5                                                                         |
+//       6: id part 6                                                                         |
+//       7: id part 7 (7 bit max value 127)                                                   |
+//       8: all ordnance2 ids same                                                            |
+//     Uint8 ordnance2EventId2?                                                               25
+//     Uint8 ordnance2EventId3?                                                               26
+//     Uint8 ordnance2EventId4?                                                               27
 //     Uint8 health?                                                                          28
 //     Uint8 fuel?                                                                            29
 //     Uint8 inputs2? (1&2:space 3&4:keyD 5&6:keyF 7&8:keyE)                                  30

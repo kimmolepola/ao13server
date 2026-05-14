@@ -545,6 +545,7 @@ export const gatherStateData = (
 
   // ---values 2---
   speedHasChanged && setUint16(speed);
+  eventsHasChanged && setUint8(eventsEncoded);
   if (eventsIdsHasChanged) {
     if (ordnance1AllDefinedIdsSame) {
       ordnance1FirstDefinedIdWithFlag !== undefined &&
@@ -565,7 +566,6 @@ export const gatherStateData = (
       ordnance2EventId4 !== undefined && setUint8(ordnance2EventId4); // flag = 0
     }
   }
-  eventsHasChanged && setUint8(eventsEncoded);
   healthHasChanged && setUint8(healthByte);
   fuelHasChanged && setUint8(fuelByte);
 
