@@ -299,14 +299,14 @@ export const gatherStateData = (
     (ordnance2EventId4 === undefined ||
       ordnance2EventId4 === ordnance2FirstDefinedId);
 
-  const ordnance1FirstDefinedIdWithFlag = ordnance1FirstDefinedId
+  const ordnance1FirstDefinedIdWithFlag = ordnance1FirstDefinedId !== undefined
     ? encode7bitWithFlag(
         ordnance1FirstDefinedId,
         ordnance1AllDefinedIdsSame ? 1 : 0
       )
     : undefined;
 
-  const ordnance2FirstDefinedIdWithFlag = ordnance2FirstDefinedId
+  const ordnance2FirstDefinedIdWithFlag = ordnance2FirstDefinedId !== undefined
     ? encode7bitWithFlag(
         ordnance2FirstDefinedId,
         ordnance2AllDefinedIdsSame ? 1 : 0
