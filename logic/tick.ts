@@ -339,7 +339,6 @@ const handleSharedObjects = (tickNumber: number, isRollback: boolean) => {
           pSeq,
           ppSeq,
           pppSeq,
-          ppppSeq,
           previousState,
           ticks
         );

@@ -361,12 +361,12 @@ export const unreliableStateSingleObjectMaxBytes = 38;
 //     Uint8 rotationSpeed?                                                                   16
 //     Uint8*2 speed?                                                                         18
 //     Uint8 events?                                                                          19
-//       1: p had one or more game events                                                     |
-//       2: pp had one or more game events                                                    |
-//       3: ppp had one or more game events                                                   |
-//       4: pppp had one or more game events                                                  |
+//       1: cur had one or more game events                                                   |
+//       2: p had one or more game events                                                     |
+//       3: pp had one or more game events                                                    |
+//       4: ppp had one or more game events                                                   |
 //       5-8: unused                                                                          |
-//     Uint8* gameEventIds? (linked list per tick, p then pp then ppp then pppp)              20+
+//     Uint8* gameEventIds? (linked list per tick, cur then p then pp then ppp)              20+
 //       1-7: event id (0-127)                                                                |
 //       8: another event follows for this tick (1) or end of tick's events (0)              |
 //     Uint8 health?                                                                          20+n

@@ -180,7 +180,6 @@ export const gatherStateData = (
   pSeq: number,
   ppSeq: number,
   pppSeq: number,
-  ppppSeq: number,
   debugPreviousState: types.TickStateObject[],
   ticks: types.TickStateObject[][]
 ) => {
@@ -192,24 +191,24 @@ export const gatherStateData = (
   //     debugPreviousState.map((x) => x.id)
   //   );
 
+  const curObj = ticks[sequenceNumber][index];
   const pObj = ticks[pSeq][index];
   const ppObj = ticks[ppSeq][index];
   const pppObj = ticks[pppSeq][index];
-  const ppppObj = ticks[ppppSeq][index];
 
+  const curGameEventIds = curObj.gameEventIds;
   const pGameEventIds = pObj.gameEventIds;
   const ppGameEventIds = ppObj.gameEventIds;
   const pppGameEventIds = pppObj.gameEventIds;
-  const ppppGameEventIds = ppppObj.gameEventIds;
 
   let eventsEncoded = 0;
-  pGameEventIds.length > 0 && (eventsEncoded |= 0b00000001);
-  ppGameEventIds.length > 0 && (eventsEncoded |= 0b00000010);
-  pppGameEventIds.length > 0 && (eventsEncoded |= 0b00000100);
-  ppppGameEventIds.length > 0 && (eventsEncoded |= 0b00001000);
+  curGameEventIds.length > 0 && (eventsEncoded |= 0b00000001);
+  pGameEventIds.length > 0 && (eventsEncoded |= 0b00000010);
+  ppGameEventIds.length > 0 && (eventsEncoded |= 0b00000100);
+  pppGameEventIds.length > 0 && (eventsEncoded |= 0b00001000);
 
   const gameEventIdBytes = buildGameEventIdBytes(
-    pGameEventIds, ppGameEventIds, pppGameEventIds, ppppGameEventIds
+    curGameEventIds, pGameEventIds, ppGameEventIds, pppGameEventIds
   );
 
   const o = tickStateObject;
