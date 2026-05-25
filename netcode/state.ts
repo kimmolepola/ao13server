@@ -159,6 +159,19 @@ function encode7bitWithFlag(value7: number, flag: number) {
 let debugId = 0;
 let prevRotZ = 0;
 let prevORotZ = 0;
+
+const buildGameEventIdBytes = (
+  p: number[], pp: number[], ppp: number[], pppp: number[]
+): number[] => {
+  const bytes: number[] = [];
+  for (const ids of [p, pp, ppp, pppp]) {
+    for (let i = 0; i < ids.length; i++) {
+      bytes.push(encode7bitWithFlag(ids[i], i < ids.length - 1 ? 1 : 0));
+    }
+  }
+  return bytes;
+};
+
 export const gatherStateData = (
   index: number,
   tickStateObject: types.TickStateObject,
@@ -184,134 +197,20 @@ export const gatherStateData = (
   const pppObj = ticks[pppSeq][index];
   const ppppObj = ticks[ppppSeq][index];
 
-  const pOrdnance1Id = pObj.ordnance1Id;
-  const ppOrdnance1Id = ppObj.ordnance1Id;
-  const pppOrdnance1Id = pppObj.ordnance1Id;
-  const ppppOrdnance1Id = ppppObj.ordnance1Id;
+  const pGameEventIds = pObj.gameEventIds;
+  const ppGameEventIds = ppObj.gameEventIds;
+  const pppGameEventIds = pppObj.gameEventIds;
+  const ppppGameEventIds = ppppObj.gameEventIds;
 
-  const pOrdnance2Id = pObj.ordnance2Id;
-  const ppOrdnance2Id = ppObj.ordnance2Id;
-  const pppOrdnance2Id = pppObj.ordnance2Id;
-  const ppppOrdnance2Id = ppppObj.ordnance2Id;
+  let eventsEncoded = 0;
+  pGameEventIds.length > 0 && (eventsEncoded |= 0b00000001);
+  ppGameEventIds.length > 0 && (eventsEncoded |= 0b00000010);
+  pppGameEventIds.length > 0 && (eventsEncoded |= 0b00000100);
+  ppppGameEventIds.length > 0 && (eventsEncoded |= 0b00001000);
 
-  const pOrdnance1Event = pObj.ordnance1Event;
-  const ppOrdnance1Event = ppObj.ordnance1Event;
-  const pppOrdnance1Event = pppObj.ordnance1Event;
-  const ppppOrdnance1Event = ppppObj.ordnance1Event;
-
-  const pOrdnance2Event = pObj.ordnance2Event;
-  const ppOrdnance2Event = ppObj.ordnance2Event;
-  const pppOrdnance2Event = pppObj.ordnance2Event;
-  const ppppOrdnance2Event = ppppObj.ordnance2Event;
-
-  let eventsEncoded = 0b00000000;
-
-  pOrdnance1Event && (eventsEncoded |= 0b00000001);
-  ppOrdnance1Event && (eventsEncoded |= 0b00000010);
-  pppOrdnance1Event && (eventsEncoded |= 0b00000100);
-  ppppOrdnance1Event && (eventsEncoded |= 0b00001000);
-
-  pOrdnance2Event && (eventsEncoded |= 0b00010000);
-  ppOrdnance2Event && (eventsEncoded |= 0b00100000);
-  pppOrdnance2Event && (eventsEncoded |= 0b01000000);
-  ppppOrdnance2Event && (eventsEncoded |= 0b10000000);
-
-  let ordnance1EventId1 = undefined;
-  let ordnance1EventId2 = undefined;
-  let ordnance1EventId3 = undefined;
-  let ordnance1EventId4 = undefined;
-  let ordnance2EventId1 = undefined;
-  let ordnance2EventId2 = undefined;
-  let ordnance2EventId3 = undefined;
-  let ordnance2EventId4 = undefined;
-
-  if (pOrdnance1Event) ordnance1EventId1 = pOrdnance1Id;
-
-  if (ppOrdnance1Event) {
-    if (ordnance1EventId1 === undefined) ordnance1EventId1 = ppOrdnance1Id;
-    else ordnance1EventId2 = ppOrdnance1Id;
-  }
-
-  if (pppOrdnance1Event) {
-    if (ordnance1EventId1 === undefined) ordnance1EventId1 = pppOrdnance1Id;
-    else if (ordnance1EventId2 === undefined)
-      ordnance1EventId2 = pppOrdnance1Id;
-    else ordnance1EventId3 = pppOrdnance1Id;
-  }
-
-  if (ppppOrdnance1Event) {
-    if (ordnance1EventId1 === undefined) ordnance1EventId1 = ppppOrdnance1Id;
-    else if (ordnance1EventId2 === undefined)
-      ordnance1EventId2 = ppppOrdnance1Id;
-    else if (ordnance1EventId3 === undefined)
-      ordnance1EventId3 = ppppOrdnance1Id;
-    else ordnance1EventId4 = ppppOrdnance1Id;
-  }
-
-  if (pOrdnance2Event) ordnance2EventId1 = pOrdnance2Id;
-
-  if (ppOrdnance2Event) {
-    if (ordnance2EventId1 === undefined) ordnance2EventId1 = ppOrdnance2Id;
-    else ordnance2EventId2 = ppOrdnance2Id;
-  }
-
-  if (pppOrdnance2Event) {
-    if (ordnance2EventId1 === undefined) ordnance2EventId1 = pppOrdnance2Id;
-    else if (ordnance2EventId2 === undefined)
-      ordnance2EventId2 = pppOrdnance2Id;
-    else ordnance2EventId3 = pppOrdnance2Id;
-  }
-
-  if (ppppOrdnance2Event) {
-    if (ordnance2EventId1 === undefined) ordnance2EventId1 = ppppOrdnance2Id;
-    else if (ordnance2EventId2 === undefined)
-      ordnance2EventId2 = ppppOrdnance2Id;
-    else if (ordnance2EventId3 === undefined)
-      ordnance2EventId3 = ppppOrdnance2Id;
-    else ordnance2EventId4 = ppppOrdnance2Id;
-  }
-
-  const ordnance1FirstDefinedId =
-    ordnance1EventId1 ??
-    ordnance1EventId2 ??
-    ordnance1EventId3 ??
-    ordnance1EventId4;
-
-  const ordnance2FirstDefinedId =
-    ordnance2EventId1 ??
-    ordnance2EventId2 ??
-    ordnance2EventId3 ??
-    ordnance2EventId4;
-
-  const ordnance1AllDefinedIdsSame =
-    (ordnance1EventId2 === undefined ||
-      ordnance1EventId2 === ordnance1FirstDefinedId) &&
-    (ordnance1EventId3 === undefined ||
-      ordnance1EventId3 === ordnance1FirstDefinedId) &&
-    (ordnance1EventId4 === undefined ||
-      ordnance1EventId4 === ordnance1FirstDefinedId);
-
-  const ordnance2AllDefinedIdsSame =
-    (ordnance2EventId2 === undefined ||
-      ordnance2EventId2 === ordnance2FirstDefinedId) &&
-    (ordnance2EventId3 === undefined ||
-      ordnance2EventId3 === ordnance2FirstDefinedId) &&
-    (ordnance2EventId4 === undefined ||
-      ordnance2EventId4 === ordnance2FirstDefinedId);
-
-  const ordnance1FirstDefinedIdWithFlag = ordnance1FirstDefinedId !== undefined
-    ? encode7bitWithFlag(
-        ordnance1FirstDefinedId,
-        ordnance1AllDefinedIdsSame ? 1 : 0
-      )
-    : undefined;
-
-  const ordnance2FirstDefinedIdWithFlag = ordnance2FirstDefinedId !== undefined
-    ? encode7bitWithFlag(
-        ordnance2FirstDefinedId,
-        ordnance2AllDefinedIdsSame ? 1 : 0
-      )
-    : undefined;
+  const gameEventIdBytes = buildGameEventIdBytes(
+    pGameEventIds, ppGameEventIds, pppGameEventIds, ppppGameEventIds
+  );
 
   const o = tickStateObject;
 
@@ -399,14 +298,8 @@ export const gatherStateData = (
     // 3
     sameIntegerPart(speed, oState.speed) && (speedHasChanged = false);
     // 4
-    ordnance1EventId1 === oState.ordnance1EventId1 &&
-      ordnance1EventId2 === oState.ordnance1EventId2 &&
-      ordnance1EventId3 === oState.ordnance1EventId3 &&
-      ordnance1EventId4 === oState.ordnance1EventId4 &&
-      ordnance2EventId1 === oState.ordnance2EventId1 &&
-      ordnance2EventId2 === oState.ordnance2EventId2 &&
-      ordnance2EventId3 === oState.ordnance2EventId3 &&
-      ordnance2EventId4 === oState.ordnance2EventId4 &&
+    gameEventIdBytes.length === oState.gameEventIdBytes.length &&
+      gameEventIdBytes.every((b, i) => b === oState.gameEventIdBytes[i]) &&
       (eventsIdsHasChanged = false);
     // 5
     eventsEncoded === oState.eventsEncoded && (eventsHasChanged = false);
@@ -547,23 +440,8 @@ export const gatherStateData = (
   speedHasChanged && setUint16(speed);
   eventsHasChanged && setUint8(eventsEncoded);
   if (eventsIdsHasChanged) {
-    if (ordnance1AllDefinedIdsSame) {
-      ordnance1FirstDefinedIdWithFlag !== undefined &&
-        setUint8(ordnance1FirstDefinedIdWithFlag); // flag = 1
-    } else {
-      ordnance1EventId1 !== undefined && setUint8(ordnance1EventId1); // flag = 0
-      ordnance1EventId2 !== undefined && setUint8(ordnance1EventId2); // flag = 0
-      ordnance1EventId3 !== undefined && setUint8(ordnance1EventId3); // flag = 0
-      ordnance1EventId4 !== undefined && setUint8(ordnance1EventId4); // flag = 0
-    }
-    if (ordnance2AllDefinedIdsSame) {
-      ordnance2FirstDefinedIdWithFlag !== undefined &&
-        setUint8(ordnance2FirstDefinedIdWithFlag); // flag = 1
-    } else {
-      ordnance2EventId1 !== undefined && setUint8(ordnance2EventId1); // flag = 0
-      ordnance2EventId2 !== undefined && setUint8(ordnance2EventId2); // flag = 0
-      ordnance2EventId3 !== undefined && setUint8(ordnance2EventId3); // flag = 0
-      ordnance2EventId4 !== undefined && setUint8(ordnance2EventId4); // flag = 0
+    for (const b of gameEventIdBytes) {
+      setUint8(b);
     }
   }
   healthHasChanged && setUint8(healthByte);
@@ -606,14 +484,7 @@ export const gatherStateData = (
       // ---values 2---
       o.idOverNetwork = idOverNetwork;
       o.speed = speed;
-      o.ordnance1EventId1 = ordnance1EventId1;
-      o.ordnance1EventId2 = ordnance1EventId2;
-      o.ordnance1EventId3 = ordnance1EventId3;
-      o.ordnance1EventId4 = ordnance1EventId4;
-      o.ordnance2EventId1 = ordnance2EventId1;
-      o.ordnance2EventId2 = ordnance2EventId2;
-      o.ordnance2EventId3 = ordnance2EventId3;
-      o.ordnance2EventId4 = ordnance2EventId4;
+      o.gameEventIdBytes = gameEventIdBytes;
       o.eventsEncoded = eventsEncoded;
       o.health = healthByte;
       o.fuel = fuelByte;
@@ -642,14 +513,7 @@ export const gatherStateData = (
         // ---values 2---
         idOverNetwork,
         speed,
-        ordnance1EventId1,
-        ordnance1EventId2,
-        ordnance1EventId3,
-        ordnance1EventId4,
-        ordnance2EventId1,
-        ordnance2EventId2,
-        ordnance2EventId3,
-        ordnance2EventId4,
+        gameEventIdBytes,
         eventsEncoded,
         health: healthByte,
         fuel: fuelByte,

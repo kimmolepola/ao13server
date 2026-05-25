@@ -53,10 +53,7 @@ const getInitialTickStateObject = (id: number) => {
     shotDelay: 0,
     fuel: 0,
     bullets: 0,
-    ordnance1Id: 0,
-    ordnance1Event: false,
-    ordnance2Id: 1,
-    ordnance2Event: false,
+    gameEventIds: [],
   };
   return obj;
 };
@@ -250,7 +247,7 @@ const handleShot = (
 ) => {
   const c = currentTickObject;
 
-  c.ordnance1Event = false;
+  c.gameEventIds = [];
   if (c.shotDelay > 0) {
     c.shotDelay -= parameters.tickInterval;
   }
@@ -258,8 +255,7 @@ const handleShot = (
     if (inputs.inputs.space) {
       // shoot
       c.shotDelay += parameters.shotDelay;
-      c.ordnance1Id = 0;
-      c.ordnance1Event = true;
+      c.gameEventIds.push(0);
       gameEventHandler({
         type: types.EventType.Shot,
         data: {

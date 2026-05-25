@@ -41,10 +41,7 @@ export type TickStateObject = GameObject & {
   shotDelay: number;
   fuel: number;
   bullets: number;
-  ordnance1Id: number;
-  ordnance1Event: boolean;
-  ordnance2Id: number;
-  ordnance2Event: boolean;
+  gameEventIds: number[];
 };
 
 export type TickLocalObject = {
@@ -77,14 +74,7 @@ export type RecentStates = {
             idOverNetwork: number;
             speed: number;
             eventsEncoded: number;
-            ordnance1EventId1: number | undefined;
-            ordnance1EventId2: number | undefined;
-            ordnance1EventId3: number | undefined;
-            ordnance1EventId4: number | undefined;
-            ordnance2EventId1: number | undefined;
-            ordnance2EventId2: number | undefined;
-            ordnance2EventId3: number | undefined;
-            ordnance2EventId4: number | undefined;
+            gameEventIdBytes: number[];
             health: number;
             fuel: number;
             // info byte 3
@@ -371,39 +361,15 @@ export const unreliableStateSingleObjectMaxBytes = 38;
 //     Uint8 rotationSpeed?                                                                   16
 //     Uint8*2 speed?                                                                         18
 //     Uint8 events?                                                                          19
-//       1: pOrdnance1Event                                                                   |
-//       2: ppOrdnance1Event                                                                  |
-//       3: pppOrdnance1Event                                                                 |
-//       4: ppppOrdnance1Event                                                                |
-//       5: pOrdnance2Event                                                                   |
-//       6: ppOrdnance2Event                                                                  |
-//       7: pppOrdnance2Event                                                                 |
-//       8: ppppOrdnance2Event                                                                |
-//     Uint8 ordnance1EventId1?                                                               20
-//       1: id part 1                                                                         |
-//       2: id part 2                                                                         |
-//       3: id part 3                                                                         |
-//       4: id part 4                                                                         |
-//       5: id part 5                                                                         |
-//       6: id part 6                                                                         |
-//       7: id part 7 (7 bit max value 127)                                                   |
-//       8: all ordnance1 ids same                                                            |
-//     Uint8 ordnance1EventId2?                                                               21
-//     Uint8 ordnance1EventId3?                                                               22
-//     Uint8 ordnance1EventId4?                                                               23
-//     Uint8 ordnance2EventId1?                                                               24
-//       1: id part 1                                                                         |
-//       2: id part 2                                                                         |
-//       3: id part 3                                                                         |
-//       4: id part 4                                                                         |
-//       5: id part 5                                                                         |
-//       6: id part 6                                                                         |
-//       7: id part 7 (7 bit max value 127)                                                   |
-//       8: all ordnance2 ids same                                                            |
-//     Uint8 ordnance2EventId2?                                                               25
-//     Uint8 ordnance2EventId3?                                                               26
-//     Uint8 ordnance2EventId4?                                                               27
-//     Uint8 health?                                                                          28
+//       1: p had one or more game events                                                     |
+//       2: pp had one or more game events                                                    |
+//       3: ppp had one or more game events                                                   |
+//       4: pppp had one or more game events                                                  |
+//       5-8: unused                                                                          |
+//     Uint8* gameEventIds? (linked list per tick, p then pp then ppp then pppp)              20+
+//       1-7: event id (0-127)                                                                |
+//       8: another event follows for this tick (1) or end of tick's events (0)              |
+//     Uint8 health?                                                                          20+n
 //     Uint8 fuel?                                                                            29
 //     Uint8 inputs2? (1&2:space 3&4:keyD 5&6:keyF 7&8:keyE)                                  30
 //     Uint8 verticalSpeed?                                                                   31
