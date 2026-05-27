@@ -140,7 +140,7 @@ export const receiveInputData = (remoteId: string, data: types.InputsData) => {
   const t = data.tickNumber;
   if (!isWithinMaxRollback(t, currentTick)) return;
 
-  console.log("--receive:", t);
+  console.log("--receive:", t, data.inputs.space);
   const sharedObject = globals.state.sharedObjectInfoById[remoteId];
   if (sharedObject) {
     const d = data.inputs;
@@ -242,10 +242,12 @@ const handleMovement = (
 const handleShot = (
   currentTickNumber: number,
   currentTickObject: types.TickStateObject,
+  previousTickObject: types.TickStateObject,
   inputs: types.InputsWithBytes,
   gameEventHandler: types.GameEventHandler
 ) => {
   const c = currentTickObject;
+  c.shotDelay = previousTickObject.shotDelay;
 
   c.gameEventIds = [];
   if (c.shotDelay > 0) {
@@ -255,6 +257,7 @@ const handleShot = (
     if (inputs.inputs.space) {
       // shoot
       c.shotDelay += parameters.shotDelay;
+      console.log("--shot", inputs.inputs.space);
       c.gameEventIds.push(0);
       gameEventHandler({
         type: types.EventType.Shot,
@@ -270,6 +273,7 @@ const handleShot = (
 
 const resetInputs = (tickNum: number, idOverNetwork: number) => {
   const r = receivedInputs[tickNum][idOverNetwork];
+  r.inputs.space && console.log("--reset inputs");
   r.inputs.up = undefined;
   r.inputs.down = undefined;
   r.inputs.left = undefined;
@@ -318,7 +322,7 @@ const handleSharedObjects = (tickNumber: number, isRollback: boolean) => {
       c.score = p.score;
       c.bullets = p.bullets;
       handleMovement(c, p, playerCurInputs, prevInputs[i], prevPrevInputs[i]);
-      handleShot(tickNumber, c, playerCurInputs, gameEventHandler);
+      handleShot(tickNumber, c, p, playerCurInputs, gameEventHandler);
       checkCollisions(
         i,
         c,
