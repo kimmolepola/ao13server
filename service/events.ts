@@ -65,6 +65,8 @@ export const gameEventHandler = async (gameEvent: types.GameEvent) => {
           type: types.GameObjectType.Bullet as const,
           x: object3d.position.x,
           y: object3d.position.y,
+          prevX: object3d.position.x,
+          prevY: object3d.position.y,
           z: o.z,
           rotationZ: o.rotationZ,
           speed: o.speed + parameters.bulletSpeed,

@@ -49,6 +49,8 @@ export type TickLocalObject = {
   x: number;
   y: number;
   z: number;
+  prevX: number;
+  prevY: number;
   rotationZ: number;
   speed: number;
   timeToLive: number;

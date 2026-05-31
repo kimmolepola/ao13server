@@ -376,6 +376,8 @@ const handleLocalObjects = (tickNumber: number) => {
       indexesToRemove.push(i);
     } else {
       const o = { ...previousObject };
+      o.prevX = previousObject.x;
+      o.prevY = previousObject.y;
       object3d.position.set(o.x, o.y, 0);
       object3d.setRotationFromAxisAngle(axis, o.rotationZ);
       object3d.translateY(o.speed * parameters.speedFactor * parameters.tickInterval);

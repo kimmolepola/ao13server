@@ -6,7 +6,7 @@ const isColliding = (
   x: number,
   y: number,
   z: number,
-  otherObject: types.TickLocalObject | types.TickStateObject,
+  otherObject: types.TickStateObject,
   maxDistance: number
 ) => {
   const dx = x - otherObject.x;
@@ -17,6 +17,37 @@ const isColliding = (
   const maxDistSq = maxDistance * maxDistance;
 
   return distSq < maxDistSq;
+};
+
+// Swept sphere check: minimum distance from target point to bullet's path segment this tick.
+const isCollidingSwept = (
+  x: number,
+  y: number,
+  z: number,
+  bullet: types.TickLocalObject,
+  maxDistance: number
+) => {
+  const dz = z - bullet.z;
+  const maxDistSq = maxDistance * maxDistance;
+  if (dz * dz >= maxDistSq) return false;
+
+  const ax = bullet.prevX, ay = bullet.prevY;
+  const bx = bullet.x, by = bullet.y;
+  const sdx = bx - ax, sdy = by - ay;
+  const lenSq = sdx * sdx + sdy * sdy;
+
+  let xyDistSq: number;
+  if (lenSq === 0) {
+    const px = x - ax, py = y - ay;
+    xyDistSq = px * px + py * py;
+  } else {
+    const t = Math.max(0, Math.min(1, ((x - ax) * sdx + (y - ay) * sdy) / lenSq));
+    const cx = ax + t * sdx, cy = ay + t * sdy;
+    const px = x - cx, py = y - cy;
+    xyDistSq = px * px + py * py;
+  }
+
+  return xyDistSq + dz * dz < maxDistSq;
 };
 
 const isCollidingPlane = (
@@ -59,7 +90,7 @@ export const checkCollisions = (
   for (let i = localObjects.length - 1; i > -1; i--) {
     const localGameObject = localObjects[i];
     if (
-      isColliding(
+      isCollidingSwept(
         x,
         y,
         z,
