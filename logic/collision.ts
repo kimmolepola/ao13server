@@ -32,17 +32,15 @@ const isCollidingSwept = (
   if (dz * dz >= maxDistSq) return false;
 
   const ax = bullet.prevX, ay = bullet.prevY;
-  const bx = bullet.x, by = bullet.y;
-  const sdx = bx - ax, sdy = by - ay;
-  const lenSq = sdx * sdx + sdy * sdy;
+  const { segDx, segDy, segLenSq } = bullet;
 
   let xyDistSq: number;
-  if (lenSq === 0) {
+  if (segLenSq === 0) {
     const px = x - ax, py = y - ay;
     xyDistSq = px * px + py * py;
   } else {
-    const t = Math.max(0, Math.min(1, ((x - ax) * sdx + (y - ay) * sdy) / lenSq));
-    const cx = ax + t * sdx, cy = ay + t * sdy;
+    const t = Math.max(0, Math.min(1, ((x - ax) * segDx + (y - ay) * segDy) / segLenSq));
+    const cx = ax + t * segDx, cy = ay + t * segDy;
     const px = x - cx, py = y - cy;
     xyDistSq = px * px + py * py;
   }

@@ -383,6 +383,9 @@ const handleLocalObjects = (tickNumber: number) => {
       object3d.translateY(o.speed * parameters.speedFactor * parameters.tickInterval);
       o.x = object3d.position.x;
       o.y = object3d.position.y;
+      o.segDx = o.x - o.prevX;
+      o.segDy = o.y - o.prevY;
+      o.segLenSq = o.segDx * o.segDx + o.segDy * o.segDy;
       o.speed *= parameters.bulletSpeedReductionFactor;
       o.timeToLive -= parameters.tickInterval;
       currentLocalObjects.push(o);
