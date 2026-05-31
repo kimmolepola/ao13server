@@ -10,8 +10,6 @@ import * as utils from "../utils";
 const object3d = utils.object3d;
 const axis = utils.AXIS_Z;
 
-const bulletTickToLive = parameters.bulletTimeToLive / parameters.tickInterval;
-
 export const gameEventHandler = async (gameEvent: types.GameEvent) => {
   switch (gameEvent.type) {
     case types.EventType.RemoveId: {
@@ -69,8 +67,8 @@ export const gameEventHandler = async (gameEvent: types.GameEvent) => {
           y: object3d.position.y,
           z: o.z,
           rotationZ: o.rotationZ,
-          speed: o.speed,
-          timeToLive: bulletTickToLive,
+          speed: o.speed + parameters.bulletSpeed,
+          timeToLive: parameters.bulletTimeToLive,
           originId: o.idOverNetwork,
         };
         o.bullets -= Math.min(o.bullets, 1);

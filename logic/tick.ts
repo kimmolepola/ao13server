@@ -378,7 +378,7 @@ const handleLocalObjects = (tickNumber: number) => {
       const o = { ...previousObject };
       object3d.position.set(o.x, o.y, 0);
       object3d.setRotationFromAxisAngle(axis, o.rotationZ);
-      object3d.translateY(o.speed * parameters.speedFactor);
+      object3d.translateY(o.speed * parameters.speedFactor * parameters.tickInterval);
       o.x = object3d.position.x;
       o.y = object3d.position.y;
       o.speed *= parameters.bulletSpeedReductionFactor;

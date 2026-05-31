@@ -67,6 +67,7 @@ export const checkCollisions = (
         parameters.collisionMaxDistanceLocalObject
       )
     ) {
+      console.log("--CollisionLocalObject");
       gameEventHandler({
         type: types.EventType.CollisionLocalObject,
         data: [gameObject, localGameObject],
