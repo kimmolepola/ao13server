@@ -54,7 +54,7 @@ export const speedFactor =
 export const forceUpToSpeedFactor = 0.28;
 export const forceDownToSpeedFactor = 0.28;
 
-export const maxRotationSpeedAbsolute = 127;
+export const maxRotationSpeedAbsolute = 32;
 export const rotationFactor = 0.00002;
 export const forceLeftOrRightToRotationFactor = 0.2;
 
