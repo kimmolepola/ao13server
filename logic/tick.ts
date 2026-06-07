@@ -216,13 +216,13 @@ const handleMovement = (
   // 3. APPLY DAMPING (time‑based exponential)
   //
   if (!left && !right) {
-    const decay = Math.exp(-p.rotationDecay * p.tickInterval);
+    const decay = p.rotationDecay ** (p.tickInterval / (1000 / 60));
     o.rotationSpeed *= decay;
     if (Math.abs(o.rotationSpeed) < 0.00001) o.rotationSpeed = 0;
   }
 
   if (!keyD && !keyF) {
-    const decay = Math.exp(-p.verticalDecay * p.tickInterval);
+    const decay = p.verticalDecay ** (p.tickInterval / (1000 / 60));
     o.verticalSpeed *= decay;
     if (Math.abs(o.verticalSpeed) < 0.00001) o.verticalSpeed = 0;
   }
