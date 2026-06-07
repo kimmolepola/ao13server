@@ -2,6 +2,7 @@ import * as types from "../types";
 import * as globals from "../globals";
 import { handleSendQueue } from "../netcode/queue";
 import { resetRecentStates } from "../netcode/state";
+
 import { handleSendBaseState } from "../netcode/baseState";
 import * as api from "../api";
 import * as parameters from "../parameters";
@@ -129,6 +130,7 @@ const handleRemoveId = (data: {
   console.log("--remove", obj?.idOverNetwork, obj?.id, data.id);
   if (obj) {
     obj.exists = false;
+    resetRecentStates();
     savePlayerData(data.currentState);
     handleSendBaseState(data.currentState);
   }
