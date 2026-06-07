@@ -22,7 +22,8 @@ export const networkToControlFactor = 1 / controlToNetworkFactor;
 // 65535 / 13769 = 4.76
 // 65535 / 25500 = 2.57
 // export const maxSpeed = 13769; // in knots
-export const maxSpeed = 25500;
+// game object max speed = 25500
+export const maxSpeed = 2414; // F22 max speed
 // const speedToNetworkFactor = 4.76;
 export const speedToNetworkFactor = 2.57;
 // on client: const networkToSpeedFactor = 1 / speedToNetworkFactor;
@@ -51,8 +52,13 @@ const millisecondsInHour = 1000 * 60 * 60;
 const metersInKm = 1000;
 export const speedFactor =
   ((1 / millisecondsInHour) * metersInKm) / oneDistanceUnitInMeters;
-export const forceUpToSpeedFactor = 0.28;
-export const forceDownToSpeedFactor = 0.28;
+// thrust - drag² physics: v_max ≈ sqrt(3×thrustForce / dragCoefficient) ≈ 2414 km/h at full throttle (up=3)
+export const thrustForce = 79;        // km/h per second per input count
+export const dragCoefficient = 4.06e-5; // (km/h/s) / (km/h)²
+export const brakeForce = 30;         // km/h per second per input count
+// S-curve: thrust ramps from thrustMinFactor at v=0 to 1.0 at thrustRampSpeed
+export const thrustMinFactor = 0.1;   // fraction of thrust available at standstill
+export const thrustRampSpeed = 800;   // km/h at which thrust reaches full power
 
 export const maxRotationSpeedAbsolute = 32;
 export const rotationFactor = 0.00002;

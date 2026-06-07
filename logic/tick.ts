@@ -188,8 +188,9 @@ const handleMovement = (
   const keyD = cInputs.keyD ?? pInputs.keyD ?? ppInputs.keyD ?? 0;
 
   o.speed = prev.speed;
-  o.speed += up * p.forceUpToSpeedFactor;
-  o.speed -= down * p.forceDownToSpeedFactor;
+  const dt = p.tickInterval / 1000;
+  const thrustFactor = p.thrustMinFactor + (1 - p.thrustMinFactor) * Math.min(prev.speed / p.thrustRampSpeed, 1);
+  o.speed += (up * p.thrustForce * thrustFactor - p.dragCoefficient * prev.speed * prev.speed - down * p.brakeForce) * dt;
 
   o.rotationSpeed = prev.rotationSpeed;
   const leftBrake = left > 0 && prev.rotationSpeed < 0 ? 4 : 1;
