@@ -58,7 +58,7 @@ export const gameEventHandler = async (gameEvent: types.GameEvent) => {
       console.log("--event shot", gameEvent.data.currentTickNumber);
       const o = gameEvent.data.gameObject;
       const localObjects = gameEvent.data.tickLocalObjects;
-      if (o.bullets >= 1) {
+      if (o.bullets > 0) {
         object3d.position.set(o.x, o.y, 0);
         object3d.setRotationFromAxisAngle(axis, o.rotationZ);
         object3d.translateY(1);
@@ -77,7 +77,7 @@ export const gameEventHandler = async (gameEvent: types.GameEvent) => {
           timeToLive: parameters.bulletTimeToLive,
           originId: o.idOverNetwork,
         };
-        o.bullets -= Math.min(o.bullets, 1);
+        o.bullets -= Math.min(o.bullets, 10);
         localObjects.push(obj);
       }
       break;
