@@ -5,7 +5,7 @@ export const collisionMaxDistanceLocalObject = 0.35;
 export const maxSharedObjects = 256;
 export const chatMessageTimeToLive = 60000;
 // export const tickRate = 1000 / 60; // FPS
-export const rotationDecay = 0.99;
+export const rotationDecay = 0.97;
 export const verticalDecay = 0.99;
 // netcode
 export const unreliableStateInterval = 1000 / 20; // FPS
@@ -55,23 +55,23 @@ export const speedFactor =
 // thrust - drag² physics: v_max ≈ sqrt(3×thrustForce / dragCoefficient) ≈ 2414 km/h at full throttle (up=3)
 export const thrustForce = 79;        // km/h per second per input count
 export const dragCoefficient = 4.06e-5; // (km/h/s) / (km/h)²
-export const brakeForce = 30;         // km/h per second per input count
+export const brakeForce = 20;         // km/h per second per input count
 // S-curve: thrust ramps from thrustMinFactor at v=0 to 1.0 at thrustRampSpeed
 export const thrustMinFactor = 0.1;   // fraction of thrust available at standstill
 export const thrustRampSpeed = 800;   // km/h at which thrust reaches full power
 
 export const maxRotationSpeedAbsolute = 32;
 export const rotationFactor = 0.00002;
-export const forceLeftOrRightToRotationFactor = 0.2;
+export const forceLeftOrRightToRotationFactor = 0.25;
 
 export const maxVerticalSpeedAbsolute = 127;
 export const verticalSpeedFactor = 0.001;
 export const forceAscOrDescToVerticalSpeedFactor = 0.01;
 
-export const bulletSpeed = 2000;
-export const bulletSpeedReductionFactor = 0.99;
+export const bulletSpeed = 3500;
+export const bulletSpeedReductionFactor = 0.999;
 export const shotDelay = 100;
-export const bulletTimeToLive = 3000;
+export const bulletTimeToLive = 2000;
 
 export const maxFuelKg = 8200;
 export const fuelToNetworkRatio = 255 / maxFuelKg;

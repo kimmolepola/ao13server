@@ -144,7 +144,10 @@ const encodeOrdnance = (
   id: number,
   value: number,
   out: { id: number; byte1: number; byte2: number }
-) => {};
+) => {
+  out.id = id;
+  out.byte1 = value & 0xff;
+};
 
 function sameIntegerPart(a: number, b: number) {
   return (a | 0) === (b | 0);
