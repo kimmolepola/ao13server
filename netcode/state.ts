@@ -146,7 +146,8 @@ const encodeOrdnance = (
   out: { id: number; byte1: number; byte2: number }
 ) => {
   out.id = id;
-  out.byte1 = value & 0xff;
+  out.byte1 = (value >> 8) & 0xff;
+  out.byte2 = value & 0xff;
 };
 
 function sameIntegerPart(a: number, b: number) {
