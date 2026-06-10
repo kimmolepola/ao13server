@@ -76,3 +76,6 @@ export const bulletTimeToLive = 2000;
 export const maxFuelKg = 8200;
 export const fuelToNetworkRatio = 255 / maxFuelKg;
 export const maxBullets = 480;
+
+// 3 reference-state cycles (3 × 32 ticks × 50ms ≈ 4.8s)
+export const ackTimeoutMs = 5000;

@@ -85,27 +85,38 @@ const getDifferenceSignificance = (
 const acknowledgements: {
   expectedSequenceNumber: number;
   acknowledged: { [clientId: string]: boolean };
+  issuedAt: number;
 } = {
   expectedSequenceNumber: 0,
   acknowledged: {},
+  issuedAt: 0,
 };
 
 const resetExpectedAcks = (sequenceNumber: number) => {
   acknowledgements.expectedSequenceNumber = sequenceNumber;
   acknowledgements.acknowledged = {};
+  acknowledgements.issuedAt = Date.now();
 };
 
 const checkAcks = () => {
   const seq = acknowledgements.expectedSequenceNumber;
   const recentState = recentStates[seq];
   if (!recentState.acknowledged) {
+    const timedOut = Date.now() - acknowledgements.issuedAt > parameters.ackTimeoutMs;
+    let allAcked = true;
     for (let i = 0; i < globals.clients.array.length; i++) {
-      const clientId = globals.clients.array[i].id;
-      if (!acknowledgements.acknowledged[clientId]) {
-        return;
+      const client = globals.clients.array[i];
+      if (!acknowledgements.acknowledged[client.id]) {
+        if (timedOut) {
+          console.warn(`Client ${client.id} ACK timeout, disconnecting`);
+          client.peerConnection.close();
+        }
+        allAcked = false;
       }
     }
-    recentState.acknowledged = true;
+    if (allAcked) {
+      recentState.acknowledged = true;
+    }
   }
 };
 
