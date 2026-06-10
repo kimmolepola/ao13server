@@ -443,6 +443,7 @@ const handleReceivedEvents = () => {
 
 export const runTick = (tickNumber: number) => {
   currentTick = tickNumber;
+  globals.tickRef.currentState = ticks[tickNumber];
   handleNewSequence(tickNumber);
   if (oldestInputTick !== null && seqLess(oldestInputTick, tickNumber)) {
     performRollback(tickNumber, oldestInputTick);

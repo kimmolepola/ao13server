@@ -11,7 +11,7 @@ import * as utils from "../utils";
 const object3d = utils.object3d;
 const axis = utils.AXIS_Z;
 
-export const gameEventHandler = async (gameEvent: types.GameEvent) => {
+export const gameEventHandler = (gameEvent: types.GameEvent) => {
   switch (gameEvent.type) {
     case types.EventType.RemoveId: {
       handleRemoveId(gameEvent.data);
@@ -23,9 +23,8 @@ export const gameEventHandler = async (gameEvent: types.GameEvent) => {
       const freeObject = data.currentState.find((x) => !x.exists);
       if (freeObject) {
         resetRecentStates();
-        await insertNewObject(data.id, freeObject);
+        if (!spawnObject(data.id, freeObject)) break;
         console.log("--newId:", data.id);
-        // console.log("--free:", freeObject);
         handleSendBaseState(data.currentState);
         const obj = {
           id: freeObject.id,
@@ -34,6 +33,7 @@ export const gameEventHandler = async (gameEvent: types.GameEvent) => {
         };
         globals.state.sharedObjectInfo.push(obj);
         globals.state.sharedObjectInfoById[freeObject.id] = obj;
+        applyProfile(data.id, freeObject.idOverNetwork, obj);
       } else {
         globals.queue.push(data.id);
         handleSendQueue(data.id);
@@ -145,26 +145,18 @@ const idFailure = (id: string) => {
   console.error("Failed to add new object, id length not 32:", id);
 };
 
-const dataFailure = (id: string) => {
-  console.error("Failed to add new object, no initialGameObject. Id: ", id);
-};
-
-const insertNewObject = async (
-  id: string,
-  freeObject: types.TickStateObject
-) => {
-  if (id.length !== 32) return idFailure(id);
-
-  const { data } = await api.getGameObject(id);
-  if (!data) return dataFailure(id);
-
+const spawnObject = (id: string, freeObject: types.TickStateObject): boolean => {
+  if (id.length !== 32) {
+    idFailure(id);
+    return false;
+  }
   const o = freeObject;
   o.exists = true;
-  o.score = data.score || 0;
-  o.isPlayer = data.isPlayer || false;
-  o.username = data.username || "";
   o.id = id;
   o.type = types.GameObjectType.Fighter as const;
+  o.score = 0;
+  o.isPlayer = true;
+  o.username = "";
   o.speed = parameters.initialSpeed;
   o.fuel = parameters.maxFuelKg;
   o.bullets = parameters.maxBullets;
@@ -176,4 +168,22 @@ const insertNewObject = async (
   o.shotDelay = 0;
   o.health = 100;
   o.rotationZ = 0;
+  return true;
+};
+
+const applyProfile = async (
+  id: string,
+  idOverNetwork: number,
+  sharedInfo: types.SharedObjectInfo
+) => {
+  const { data } = await api.getGameObject(id);
+  if (!data) return;
+  sharedInfo.username = data.username || "";
+  const liveObj = globals.tickRef.currentState[idOverNetwork];
+  if (liveObj?.exists && liveObj.id === id) {
+    liveObj.score = data.score || 0;
+    liveObj.isPlayer = data.isPlayer || false;
+    liveObj.username = data.username || "";
+  }
+  handleSendBaseState(globals.tickRef.currentState);
 };
