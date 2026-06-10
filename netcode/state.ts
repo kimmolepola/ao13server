@@ -366,10 +366,10 @@ export const gatherStateData = (
   const setUint8 = (value: number) => {
     try {
       view.setUint8(offset + localOffset, value);
+      localOffset++;
     } catch (e: any) {
       console.error("setUint8 error");
     }
-    localOffset++;
   };
 
   const setInt8 = (value: number) => {
