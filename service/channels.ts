@@ -90,7 +90,6 @@ export const sendReliableString = (
 };
 
 export const sendUnreliableBinary = (data: types.UnreliableStateBinary) => {
-  // console.log("--sendUnreliableBinary", data);
   const clientsArray = globals.clients.array;
   for (let i = 0; i < clientsArray.length; i++) {
     const stateChannel = clientsArray[i].stateChannel;

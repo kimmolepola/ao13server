@@ -56,7 +56,6 @@ const syncBufferSize = () => {
       objectCount * types.unreliableStateSingleObjectMaxBytes;
     buffer = new ArrayBuffer(maxBytes);
     view = new DataView(buffer);
-    console.log("--SYNC BUFFER SIZE:", maxBytes, objectCount);
   }
 };
 
@@ -165,7 +164,10 @@ let prevRotZ = 0;
 let prevORotZ = 0;
 
 const buildGameEventIdBytes = (
-  p: number[], pp: number[], ppp: number[], pppp: number[]
+  p: number[],
+  pp: number[],
+  ppp: number[],
+  pppp: number[]
 ): number[] => {
   const bytes: number[] = [];
   for (const ids of [p, pp, ppp, pppp]) {
@@ -184,17 +186,8 @@ export const gatherStateData = (
   pSeq: number,
   ppSeq: number,
   pppSeq: number,
-  debugPreviousState: types.TickStateObject[],
   ticks: types.TickStateObject[][]
 ) => {
-  // offset !== 1 &&
-  //   console.log(
-  //     "--offset:",
-  //     offset,
-  //     globals.state.sharedObjectInfoById,
-  //     debugPreviousState.map((x) => x.id)
-  //   );
-
   const curObj = ticks[sequenceNumber][index];
   const pObj = ticks[pSeq][index];
   const ppObj = ticks[ppSeq][index];
@@ -212,7 +205,10 @@ export const gatherStateData = (
   pppGameEventIds.length > 0 && (eventsEncoded |= 0b00001000);
 
   const gameEventIdBytes = buildGameEventIdBytes(
-    curGameEventIds, pGameEventIds, ppGameEventIds, pppGameEventIds
+    curGameEventIds,
+    pGameEventIds,
+    ppGameEventIds,
+    pppGameEventIds
   );
 
   const o = tickStateObject;
@@ -223,23 +219,7 @@ export const gatherStateData = (
   const z = o.z;
 
   const rotationZ = encodeRotationZ(o.rotationZ);
-  // if (
-  //   o.idOverNetwork === debugId &&
-  //   (o.rotationZ !== prevORotZ || rotationZ !== prevRotZ)
-  // ) {
-  //   prevORotZ = o.rotationZ;
-  //   prevRotZ = rotationZ;
-  //   console.log("--o:", o.idOverNetwork, o.rotationZ);
-  // }
   const speed = o.speed;
-  // if (prevSpeed.toFixed(2) !== speed.toFixed(2)) {
-  //   console.log(
-  //     "--speed:",
-  //     prevSpeed.toFixed(2),
-  //     speed.toFixed(2),
-  //   );
-  //   prevSpeed = speed;
-  // }
   const rotationSpeed = o.rotationSpeed;
   const verticalSpeed = o.verticalSpeed;
 
@@ -247,12 +227,9 @@ export const gatherStateData = (
   const inputs2 = objectInputs.byte2;
 
   const healthByte = o.health & 0xff;
-  // console.log("--health:", o.health, healthByte);
   const fuelByte = (o.fuel * parameters.fuelToNetworkRatio) & 0xff;
-  // console.log("--o:", o);
   encodeOrdnance(0, o.bullets, ordnanceChannel1);
   encodeOrdnance(1, 0, ordnanceChannel2); // TODO: content
-  // console.log("--ord:", o.bullets, ordnanceChannel1.byte1);
   const xBytes = getUint8Bytes(x);
   const yBytes = getUint8Bytes(y);
 
@@ -390,14 +367,7 @@ export const gatherStateData = (
     try {
       view.setUint8(offset + localOffset, value);
     } catch (e: any) {
-      console.error(
-        "--setUint8 error:",
-        offset,
-        localOffset,
-        offset + localOffset,
-        value,
-        view.byteLength
-      );
+      console.error("setUint8 error");
     }
     localOffset++;
   };

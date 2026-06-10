@@ -24,7 +24,6 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
       if (freeObject) {
         resetRecentStates();
         if (!spawnObject(data.id, freeObject)) break;
-        console.log("--newId:", data.id);
         handleSendBaseState(data.currentState);
         const obj = {
           id: freeObject.id,
@@ -38,10 +37,6 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
         globals.queue.push(data.id);
         handleSendQueue(data.id);
       }
-      console.log(
-        "--globals.state.sharedObjectInfo:",
-        globals.state.sharedObjectInfo
-      );
       break;
     }
     case types.EventType.HealthZero: {
@@ -55,7 +50,6 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
       break;
     }
     case types.EventType.Shot: {
-      console.log("--event shot", gameEvent.data.currentTickNumber);
       const o = gameEvent.data.gameObject;
       const localObjects = gameEvent.data.tickLocalObjects;
       if (o.bullets > 0) {
@@ -127,7 +121,6 @@ const handleRemoveId = (data: {
   currentState: types.TickStateObject[];
 }) => {
   const obj = data.currentState.find((x) => x.id === data.id);
-  console.log("--remove", obj?.idOverNetwork, obj?.id, data.id);
   if (obj) {
     obj.exists = false;
     resetRecentStates();
@@ -145,7 +138,10 @@ const idFailure = (id: string) => {
   console.error("Failed to add new object, id length not 32:", id);
 };
 
-const spawnObject = (id: string, freeObject: types.TickStateObject): boolean => {
+const spawnObject = (
+  id: string,
+  freeObject: types.TickStateObject
+): boolean => {
   if (id.length !== 32) {
     idFailure(id);
     return false;

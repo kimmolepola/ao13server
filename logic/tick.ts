@@ -140,7 +140,6 @@ export const receiveInputData = (remoteId: string, data: types.InputsData) => {
   const t = data.tickNumber;
   if (!isWithinMaxRollback(t, currentTick)) return;
 
-  console.log("--receive:", t, data.inputs.space);
   const sharedObject = globals.state.sharedObjectInfoById[remoteId];
   if (sharedObject) {
     const d = data.inputs;
@@ -189,8 +188,14 @@ const handleMovement = (
 
   o.speed = prev.speed;
   const dt = p.tickInterval / 1000;
-  const thrustFactor = p.thrustMinFactor + (1 - p.thrustMinFactor) * Math.min(prev.speed / p.thrustRampSpeed, 1);
-  o.speed += (up * p.thrustForce * thrustFactor - p.dragCoefficient * prev.speed * prev.speed - down * p.brakeForce) * dt;
+  const thrustFactor =
+    p.thrustMinFactor +
+    (1 - p.thrustMinFactor) * Math.min(prev.speed / p.thrustRampSpeed, 1);
+  o.speed +=
+    (up * p.thrustForce * thrustFactor -
+      p.dragCoefficient * prev.speed * prev.speed -
+      down * p.brakeForce) *
+    dt;
 
   o.rotationSpeed = prev.rotationSpeed;
   const leftBrake = left > 0 && prev.rotationSpeed < 0 ? 4 : 1;
@@ -260,7 +265,6 @@ const handleShot = (
     if (inputs.inputs.space) {
       // shoot
       c.shotDelay += parameters.shotDelay;
-      console.log("--shot", inputs.inputs.space);
       c.gameEventIds.push(0);
       gameEventHandler({
         type: types.EventType.Shot,
@@ -276,7 +280,6 @@ const handleShot = (
 
 const resetInputs = (tickNum: number, idOverNetwork: number) => {
   const r = receivedInputs[tickNum][idOverNetwork];
-  r.inputs.space && console.log("--reset inputs");
   r.inputs.up = undefined;
   r.inputs.down = undefined;
   r.inputs.left = undefined;
@@ -301,7 +304,6 @@ const handleSharedObjects = (tickNumber: number, isRollback: boolean) => {
   const pSeq = getPrevSeq(tickNumber);
   const ppSeq = getPrevSeq(pSeq);
   const pppSeq = getPrevSeq(ppSeq);
-  const ppppSeq = getPrevSeq(pppSeq);
 
   const currentState = ticks[tickNumber];
   const previousState = ticks[pSeq];
@@ -338,17 +340,7 @@ const handleSharedObjects = (tickNumber: number, isRollback: boolean) => {
         const idN = c.idOverNetwork;
         const input = receivedInputs[tickNumber][idN];
 
-        gatherStateData(
-          i,
-          c,
-          input,
-          tickNumber,
-          pSeq,
-          ppSeq,
-          pppSeq,
-          previousState,
-          ticks
-        );
+        gatherStateData(i, c, input, tickNumber, pSeq, ppSeq, pppSeq, ticks);
         const tickNumPastRollback = seq8Sub(
           tickNumber,
           parameters.maxRollback + 1
@@ -383,7 +375,9 @@ const handleLocalObjects = (tickNumber: number) => {
       o.prevY = previousObject.y;
       object3d.position.set(o.x, o.y, 0);
       object3d.setRotationFromAxisAngle(axis, o.rotationZ);
-      object3d.translateY(o.speed * parameters.speedFactor * parameters.tickInterval);
+      object3d.translateY(
+        o.speed * parameters.speedFactor * parameters.tickInterval
+      );
       o.x = object3d.position.x;
       o.y = object3d.position.y;
       o.segDx = o.x - o.prevX;
@@ -403,7 +397,6 @@ const simulate = (tickNumber: number, isRollback: boolean) => {
 
 const performRollback = (tickNumber: number, oldestInputTick: number) => {
   let s = oldestInputTick;
-  console.log("--rollback:", s, tickNumber);
   while (true) {
     if (s === tickNumber) break;
     simulate(s, true);
@@ -426,7 +419,6 @@ const handleRemoveId = (id: string) => {
 const handleReceivedEvents = () => {
   for (let i = 0; i < receivedEvents.length; i++) {
     const e = receivedEvents[i];
-    // console.log("--e:", e);
     switch (e.type) {
       case types.ReceivedEventType.NewId:
         handleNewId(e.data);
@@ -451,7 +443,6 @@ export const runTick = (tickNumber: number) => {
   simulate(tickNumber, false);
   oldestInputTick = null;
   handleReceivedEvents();
-  // console.log("--currentTick:", currentTick);
   sendState();
   // resetReceivedInputTicknumbers();
 };

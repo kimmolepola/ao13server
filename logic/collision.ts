@@ -31,17 +31,24 @@ const isCollidingSwept = (
   const maxDistSq = maxDistance * maxDistance;
   if (dz * dz >= maxDistSq) return false;
 
-  const ax = bullet.prevX, ay = bullet.prevY;
+  const ax = bullet.prevX,
+    ay = bullet.prevY;
   const { segDx, segDy, segLenSq } = bullet;
 
   let xyDistSq: number;
   if (segLenSq === 0) {
-    const px = x - ax, py = y - ay;
+    const px = x - ax,
+      py = y - ay;
     xyDistSq = px * px + py * py;
   } else {
-    const t = Math.max(0, Math.min(1, ((x - ax) * segDx + (y - ay) * segDy) / segLenSq));
-    const cx = ax + t * segDx, cy = ay + t * segDy;
-    const px = x - cx, py = y - cy;
+    const t = Math.max(
+      0,
+      Math.min(1, ((x - ax) * segDx + (y - ay) * segDy) / segLenSq)
+    );
+    const cx = ax + t * segDx,
+      cy = ay + t * segDy;
+    const px = x - cx,
+      py = y - cy;
     xyDistSq = px * px + py * py;
   }
 
@@ -96,7 +103,6 @@ export const checkCollisions = (
         parameters.collisionMaxDistanceLocalObject
       )
     ) {
-      console.log("--CollisionLocalObject");
       gameEventHandler({
         type: types.EventType.CollisionLocalObject,
         data: [gameObject, localGameObject],
