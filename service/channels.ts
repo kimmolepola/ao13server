@@ -43,7 +43,10 @@ export const onReceiveInputs = (
   clientId: string
 ) => {
   const client = globals.clients.map[clientId];
-  if (client) client.lastInputTime = Date.now();
+  if (client) {
+    client.lastInputTime = Date.now();
+    client.inputTimeoutWarningSent = false;
+  }
   const data = decodeInputs(msg);
   receiveInputData(clientId, data);
 };
@@ -58,7 +61,7 @@ export const onReceiveAck = (
 
 export const sendReliableStringSingleClient = (
   id: string,
-  data: types.Queue
+  data: types.Queue | types.InactivityWarning
 ) => {
   const stringData = JSON.stringify(data);
   try {

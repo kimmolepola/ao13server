@@ -233,6 +233,7 @@ export enum ServerStringDataType {
   ChatMessage_Server = "ChatMessage_Server",
   BaseState = "BaseState",
   Queue = "Queue",
+  InactivityWarning = "InactivityWarning",
 }
 
 export type ChatMessageFromClient = {
@@ -301,7 +302,12 @@ export type Queue = {
 
 export type ClientStringData = ChatMessageFromClient;
 
-export type ServerStringData = ChatMessageFromServer | BaseState;
+export type InactivityWarning = {
+  type: ServerStringDataType.InactivityWarning;
+  secondsUntilDisconnect: number;
+};
+
+export type ServerStringData = ChatMessageFromServer | BaseState | InactivityWarning;
 
 type Client = {
   id: string;
@@ -311,6 +317,7 @@ type Client = {
   controlsChannel: DataChannel | null;
   stateChannel: DataChannel | null;
   lastInputTime: number;
+  inputTimeoutWarningSent: boolean;
 };
 
 export type Clients = {

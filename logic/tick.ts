@@ -7,6 +7,7 @@ import {
   handleNewSequence,
 } from "../netcode/state";
 import { gameEventHandler } from "../service/events";
+import { sendReliableStringSingleClient } from "../service/channels";
 import { checkCollisions } from "./collision";
 import * as utils from "../utils";
 
@@ -437,12 +438,17 @@ const checkInputTimeouts = () => {
   const now = Date.now();
   for (let i = 0; i < globals.clients.array.length; i++) {
     const client = globals.clients.array[i];
-    if (
-      globals.state.sharedObjectInfoById[client.id] &&
-      now - client.lastInputTime > parameters.inputTimeoutMs
-    ) {
+    if (!globals.state.sharedObjectInfoById[client.id]) continue;
+    const elapsed = now - client.lastInputTime;
+    if (elapsed > parameters.inputTimeoutMs) {
       console.warn(`Client ${client.id} input timeout, disconnecting`);
       client.peerConnection.close();
+    } else if (elapsed > parameters.inputTimeoutWarningMs && !client.inputTimeoutWarningSent) {
+      client.inputTimeoutWarningSent = true;
+      sendReliableStringSingleClient(client.id, {
+        type: types.ServerStringDataType.InactivityWarning,
+        secondsUntilDisconnect: Math.ceil((parameters.inputTimeoutMs - elapsed) / 1000),
+      });
     }
   }
 };
