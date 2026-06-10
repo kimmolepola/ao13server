@@ -310,6 +310,7 @@ type Client = {
   ackChannel: DataChannel | null;
   controlsChannel: DataChannel | null;
   stateChannel: DataChannel | null;
+  lastInputTime: number;
 };
 
 export type Clients = {

@@ -433,10 +433,25 @@ const handleReceivedEvents = () => {
   receivedEvents.length = 0;
 };
 
+const checkInputTimeouts = () => {
+  const now = Date.now();
+  for (let i = 0; i < globals.clients.array.length; i++) {
+    const client = globals.clients.array[i];
+    if (
+      globals.state.sharedObjectInfoById[client.id] &&
+      now - client.lastInputTime > parameters.inputTimeoutMs
+    ) {
+      console.warn(`Client ${client.id} input timeout, disconnecting`);
+      client.peerConnection.close();
+    }
+  }
+};
+
 export const runTick = (tickNumber: number) => {
   currentTick = tickNumber;
   globals.tickRef.currentState = ticks[tickNumber];
   handleNewSequence(tickNumber);
+  checkInputTimeouts();
   if (oldestInputTick !== null && seqLess(oldestInputTick, tickNumber)) {
     performRollback(tickNumber, oldestInputTick);
   }

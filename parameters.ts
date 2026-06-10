@@ -53,12 +53,12 @@ const metersInKm = 1000;
 export const speedFactor =
   ((1 / millisecondsInHour) * metersInKm) / oneDistanceUnitInMeters;
 // thrust - drag² physics: v_max ≈ sqrt(3×thrustForce / dragCoefficient) ≈ 2414 km/h at full throttle (up=3)
-export const thrustForce = 79;        // km/h per second per input count
+export const thrustForce = 79; // km/h per second per input count
 export const dragCoefficient = 4.06e-5; // (km/h/s) / (km/h)²
-export const brakeForce = 20;         // km/h per second per input count
+export const brakeForce = 20; // km/h per second per input count
 // S-curve: thrust ramps from thrustMinFactor at v=0 to 1.0 at thrustRampSpeed
-export const thrustMinFactor = 0.1;   // fraction of thrust available at standstill
-export const thrustRampSpeed = 800;   // km/h at which thrust reaches full power
+export const thrustMinFactor = 0.1; // fraction of thrust available at standstill
+export const thrustRampSpeed = 800; // km/h at which thrust reaches full power
 
 export const maxRotationSpeedAbsolute = 32;
 export const rotationFactor = 0.00002;
@@ -79,3 +79,4 @@ export const maxBullets = 480;
 
 // 3 reference-state cycles (3 × 32 ticks × 50ms ≈ 4.8s)
 export const ackTimeoutMs = 5000;
+export const inputTimeoutMs = 50000;

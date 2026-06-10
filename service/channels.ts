@@ -42,6 +42,8 @@ export const onReceiveInputs = (
   msg: string | ArrayBuffer | Buffer<ArrayBufferLike>,
   clientId: string
 ) => {
+  const client = globals.clients.map[clientId];
+  if (client) client.lastInputTime = Date.now();
   const data = decodeInputs(msg);
   receiveInputData(clientId, data);
 };

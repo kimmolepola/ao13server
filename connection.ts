@@ -35,6 +35,7 @@ const createPeerConnection = (
     ackChannel: null,
     controlsChannel: null,
     stateChannel: null,
+    lastInputTime: Date.now(),
   };
   globals.clients.array.push(client);
   globals.clients.map[peerId] = client;
