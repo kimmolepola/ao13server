@@ -86,16 +86,19 @@ const acknowledgements: {
   expectedSequenceNumber: number;
   acknowledged: { [clientId: string]: boolean };
   issuedAt: number;
+  required: Set<string>;
 } = {
   expectedSequenceNumber: 0,
   acknowledged: {},
   issuedAt: 0,
+  required: new Set(),
 };
 
 const resetExpectedAcks = (sequenceNumber: number) => {
   acknowledgements.expectedSequenceNumber = sequenceNumber;
   acknowledgements.acknowledged = {};
   acknowledgements.issuedAt = Date.now();
+  acknowledgements.required = new Set(globals.clients.array.map((c) => c.id));
 };
 
 const checkAcks = () => {
@@ -104,12 +107,15 @@ const checkAcks = () => {
   if (!recentState.acknowledged) {
     const timedOut = Date.now() - acknowledgements.issuedAt > parameters.ackTimeoutMs;
     let allAcked = true;
-    for (let i = 0; i < globals.clients.array.length; i++) {
-      const client = globals.clients.array[i];
-      if (!acknowledgements.acknowledged[client.id]) {
+    for (const clientId of acknowledgements.required) {
+      if (!globals.clients.map[clientId]) {
+        acknowledgements.required.delete(clientId);
+        continue;
+      }
+      if (!acknowledgements.acknowledged[clientId]) {
         if (timedOut) {
-          console.warn(`Client ${client.id} ACK timeout, disconnecting`);
-          client.peerConnection.close();
+          console.warn(`Client ${clientId} ACK timeout, disconnecting`);
+          globals.clients.map[clientId].peerConnection.close();
         }
         allAcked = false;
       }
