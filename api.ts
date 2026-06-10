@@ -1,27 +1,8 @@
-import axios from "axios";
 import { HubConnectionBuilder } from "@microsoft/signalr";
 import * as types from "./types";
 
 const backendUrl = process.env.ASPNETCORE_Ao13back__ServerOptions__BackendUrl;
 const pathPrefix = "/api/v1";
-
-export const postSaveGameState = (data: types.PlayerState[]) =>
-  axios.post(backendUrl + pathPrefix + "/gameObject/saveGameState", data);
-
-export const getGameObject = (id: string) =>
-  axios.get(backendUrl + pathPrefix + "/gameObject/" + id);
-
-export const getTurnCredentials = () =>
-  axios.get(backendUrl + pathPrefix + "/auth/getTurnCredentials");
-
-export const postServerLogin = (
-  serverId: string,
-  password: string | undefined
-) =>
-  axios.post(backendUrl + pathPrefix + "/auth/serverLogin", {
-    id: serverId,
-    password,
-  });
 
 export const accessTokenForHubConnection: { accessToken: string | undefined } =
   {
@@ -30,7 +11,50 @@ export const accessTokenForHubConnection: { accessToken: string | undefined } =
 
 export const setAccessToken = (accessToken: string) => {
   accessTokenForHubConnection.accessToken = accessToken;
-  axios.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
+};
+
+const authHeaders = (): Record<string, string> => ({
+  Authorization: `Bearer ${accessTokenForHubConnection.accessToken || ""}`,
+  "Content-Type": "application/json",
+});
+
+const apiFetch = async (url: string, init?: RequestInit) => {
+  const response = await fetch(url, { ...init, headers: authHeaders() });
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`HTTP ${response.status}: ${text}`);
+  }
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
+};
+
+export const postSaveGameState = (data: types.PlayerState[]) =>
+  apiFetch(backendUrl + pathPrefix + "/gameObject/saveGameState", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }).catch((err) => console.error("postSaveGameState error", err));
+
+export const getGameObject = async (id: string) => {
+  const data = await apiFetch(backendUrl + pathPrefix + "/gameObject/" + id);
+  return { data };
+};
+
+export const getTurnCredentials = async () => {
+  const data = await apiFetch(
+    backendUrl + pathPrefix + "/auth/getTurnCredentials"
+  );
+  return { data };
+};
+
+export const postServerLogin = async (
+  serverId: string,
+  password: string | undefined
+) => {
+  const data = await apiFetch(backendUrl + pathPrefix + "/auth/serverLogin", {
+    method: "POST",
+    body: JSON.stringify({ id: serverId, password }),
+  });
+  return { data };
 };
 
 export const buildHubConnection = () => {
@@ -39,20 +63,20 @@ export const buildHubConnection = () => {
       accessTokenFactory: () => accessTokenForHubConnection.accessToken || "",
     })
     .build();
-
   return hubConnection;
 };
 
 export const postRefreshToken = async (refreshToken: string) => {
-  const result = await axios.post(
+  const result = await apiFetch(
     backendUrl + pathPrefix + "/auth/refreshToken",
     {
-      refreshToken,
+      method: "POST",
+      body: JSON.stringify({ refreshToken }),
     }
   );
-  !result.data && console.error("postRefreshToken error", result);
+  !result && console.error("postRefreshToken error", result);
   return {
-    accessToken: result.data?.accessToken,
-    refreshToken: result.data?.refreshToken,
+    accessToken: result?.accessToken,
+    refreshToken: result?.refreshToken,
   };
 };
