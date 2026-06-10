@@ -1,5 +1,6 @@
 import * as types from "../types";
 
+// Reused buffer — mutated and returned on every call. Consume all fields synchronously before any await.
 const data: types.InputsData = {
   tickNumber: 0,
   inputs: {
