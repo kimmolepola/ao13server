@@ -11,7 +11,6 @@ const data: types.InputsData = {
     space: 0,
     keyD: 0,
     keyF: 0,
-    keyE: 0,
   },
   byte1: 0,
   byte2: 0,
@@ -44,7 +43,6 @@ export const decodeInputs = (
   data.inputs.space = get2BitValueFromBufferBE(len, buffer, 0);
   data.inputs.keyD = get2BitValueFromBufferBE(len, buffer, 2);
   data.inputs.keyF = get2BitValueFromBufferBE(len, buffer, 4);
-  data.inputs.keyE = get2BitValueFromBufferBE(len, buffer, 6);
 
   data.byte1 = buffer[1];
   data.byte2 = len === 2 ? undefined : buffer[2];

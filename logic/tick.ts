@@ -90,7 +90,6 @@ const initializeReceivedInputs = () => {
           space: undefined,
           keyD: undefined,
           keyF: undefined,
-          keyE: undefined,
         },
         byte1: undefined,
         byte2: undefined,
@@ -119,9 +118,11 @@ initializeLocalObjects();
 // initializeReceivedInputTicknumbers();
 
 const isWithinMaxRollback = (seq: number, x: number) => {
-  // Compute distance backwards from seq to x in 8‑bit space
-  const diff = (seq - x) & 0xff;
-  return diff > 0 && diff <= parameters.maxRollback;
+  // Accept if seq is within maxRollback ticks of x in 8-bit space in either direction.
+  // ahead=0: current tick (use directly); ahead=1..max: early input (buffer for future use);
+  // ahead=256-max..255: late input (triggers rollback via performRollback).
+  const ahead = (seq - x) & 0xff;
+  return ahead <= parameters.maxRollback || ahead >= 256 - parameters.maxRollback;
 };
 
 const seqLess = (a: number, b: number) => {
@@ -152,7 +153,6 @@ export const receiveInputData = (remoteId: string, data: types.InputsData) => {
     r.inputs.space = d.space;
     r.inputs.keyD = d.keyD;
     r.inputs.keyF = d.keyF;
-    r.inputs.keyE = d.keyE;
     r.byte1 = data.byte1;
     r.byte2 = data.byte2;
 
@@ -288,7 +288,6 @@ const resetInputs = (tickNum: number, idOverNetwork: number) => {
   r.inputs.space = undefined;
   r.inputs.keyD = undefined;
   r.inputs.keyF = undefined;
-  r.inputs.keyE = undefined;
   r.byte1 = undefined;
   r.byte2 = undefined;
 };
@@ -336,7 +335,7 @@ const handleSharedObjects = (tickNumber: number, isRollback: boolean) => {
         localObjects[tickNumber],
         gameEventHandler
       );
-      c.fuel = p.fuel - c.speed * 0.0001;
+      c.fuel = Math.max(0, p.fuel - c.speed * 0.0001);
       if (!isRollback) {
         const idN = c.idOverNetwork;
         const input = receivedInputs[tickNumber][idN];

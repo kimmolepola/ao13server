@@ -2,7 +2,7 @@ import * as globals from "../globals";
 import * as types from "../types";
 import * as parameters from "../parameters";
 import { encodeAxisValue, encodeRotationZ } from "../utils";
-import { sendUnreliableBinary } from "../service/channels";
+import { sendUnreliableBinary, sendReliableStringSingleClient } from "../service/channels";
 
 const sequenceNumberBytes = 1;
 let buffer = new ArrayBuffer(sequenceNumberBytes);
@@ -26,8 +26,8 @@ const shouldAddToRecentStates = (sequenceNumber: number) =>
 
 const resetRecentStatesCurrentSequence = (sequenceNumber: number) => {
   if (shouldAddToRecentStates(sequenceNumber)) {
-    delete recentStates[sequenceNumber];
-    recentStates[sequenceNumber] = { acknowledged: false, state: {} };
+    recentStates[sequenceNumber].acknowledged = false;
+    recentStates[sequenceNumber].state = {};
   }
 };
 
@@ -85,19 +85,18 @@ const getDifferenceSignificance = (
 const acknowledgements: {
   expectedSequenceNumber: number;
   acknowledged: { [clientId: string]: boolean };
-  issuedAt: number;
+  missedWindows: { [clientId: string]: number };
   required: Set<string>;
 } = {
   expectedSequenceNumber: 0,
   acknowledged: {},
-  issuedAt: 0,
+  missedWindows: {},
   required: new Set(),
 };
 
 const resetExpectedAcks = (sequenceNumber: number) => {
   acknowledgements.expectedSequenceNumber = sequenceNumber;
   acknowledgements.acknowledged = {};
-  acknowledgements.issuedAt = Date.now();
   acknowledgements.required = new Set(globals.clients.array.map((c) => c.id));
 };
 
@@ -105,23 +104,40 @@ const checkAcks = () => {
   const seq = acknowledgements.expectedSequenceNumber;
   const recentState = recentStates[seq];
   if (!recentState.acknowledged) {
-    const timedOut = Date.now() - acknowledgements.issuedAt > parameters.ackTimeoutMs;
     let allAcked = true;
     for (const clientId of acknowledgements.required) {
       if (!globals.clients.map[clientId]) {
         acknowledgements.required.delete(clientId);
+        delete acknowledgements.missedWindows[clientId];
         continue;
       }
       if (!acknowledgements.acknowledged[clientId]) {
-        if (timedOut) {
-          console.warn(`Client ${clientId} ACK timeout, disconnecting`);
-          globals.clients.map[clientId].peerConnection.close();
-        }
         allAcked = false;
       }
     }
     if (allAcked) {
       recentState.acknowledged = true;
+    }
+  }
+};
+
+const evaluateMissedWindows = () => {
+  for (const clientId of acknowledgements.required) {
+    if (!globals.clients.map[clientId]) {
+      acknowledgements.required.delete(clientId);
+      delete acknowledgements.missedWindows[clientId];
+      continue;
+    }
+    if (acknowledgements.acknowledged[clientId]) {
+      acknowledgements.missedWindows[clientId] = 0;
+    } else {
+      const missed = (acknowledgements.missedWindows[clientId] ?? 0) + 1;
+      acknowledgements.missedWindows[clientId] = missed;
+      if (missed >= parameters.ackMaxMissedWindows) {
+        console.warn(`Client ${clientId} missed ${missed} consecutive ACK windows, disconnecting`);
+        sendReliableStringSingleClient(clientId, { type: types.ServerStringDataType.ConnectionQualityKick });
+        globals.clients.map[clientId].peerConnection.close();
+      }
     }
   }
 };
@@ -149,6 +165,7 @@ export const handleNewSequence = (sequenceNumber: number) => {
   checkAcks();
   if (shouldAddToRecentStates(sequenceNumber)) {
     resetRecentStatesCurrentSequence(sequenceNumber);
+    evaluateMissedWindows();
     resetExpectedAcks(sequenceNumber);
   }
   view.setUint8(0, sequenceNumber);
@@ -176,9 +193,6 @@ function encode7bitWithFlag(value7: number, flag: number) {
   return ((flag & 1) << 7) | (value7 & 0x7f);
 }
 
-let debugId = 0;
-let prevRotZ = 0;
-let prevORotZ = 0;
 
 const buildGameEventIdBytes = (
   p: number[],
@@ -390,13 +404,21 @@ export const gatherStateData = (
   };
 
   const setInt8 = (value: number) => {
-    view.setInt8(offset + localOffset, value);
-    localOffset++;
+    try {
+      view.setInt8(offset + localOffset, value);
+      localOffset++;
+    } catch (e: any) {
+      console.error("setInt8 error");
+    }
   };
 
   const setUint16 = (value: number) => {
-    view.setUint16(offset + localOffset, value);
-    localOffset += 2;
+    try {
+      view.setUint16(offset + localOffset, value);
+      localOffset += 2;
+    } catch (e: any) {
+      console.error("setUint16 error");
+    }
   };
 
   const insertChangedBytes = (

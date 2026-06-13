@@ -61,7 +61,7 @@ export const onReceiveAck = (
 
 export const sendReliableStringSingleClient = (
   id: string,
-  data: types.Queue | types.InactivityWarning
+  data: types.Queue | types.InactivityWarning | types.ConnectionQualityKick
 ) => {
   const stringData = JSON.stringify(data);
   try {

@@ -234,6 +234,7 @@ export enum ServerStringDataType {
   BaseState = "BaseState",
   Queue = "Queue",
   InactivityWarning = "InactivityWarning",
+  ConnectionQualityKick = "ConnectionQualityKick",
 }
 
 export type ChatMessageFromClient = {
@@ -256,7 +257,6 @@ export type Inputs = {
   space: Count60FPSWithin20FPS | undefined;
   keyD: Count60FPSWithin20FPS | undefined;
   keyF: Count60FPSWithin20FPS | undefined;
-  keyE: Count60FPSWithin20FPS | undefined;
 };
 
 export type InputsWithBytes = {
@@ -307,7 +307,11 @@ export type InactivityWarning = {
   secondsUntilDisconnect: number;
 };
 
-export type ServerStringData = ChatMessageFromServer | BaseState | InactivityWarning;
+export type ConnectionQualityKick = {
+  type: ServerStringDataType.ConnectionQualityKick;
+};
+
+export type ServerStringData = ChatMessageFromServer | BaseState | InactivityWarning | ConnectionQualityKick;
 
 type Client = {
   id: string;
@@ -384,7 +388,7 @@ export const unreliableStateSingleObjectMaxBytes = 38;
 //       8: another event follows for this tick (1) or end of tick's events (0)              |
 //     Uint8 health?                                                                          20+n
 //     Uint8 fuel?                                                                            29
-//     Uint8 inputs2? (1&2:space 3&4:keyD 5&6:keyF 7&8:keyE)                                  30
+//     Uint8 inputs2? (1&2:space 3&4:keyD 5&6:keyF 7&8:unused)                               30
 //     Uint8 verticalSpeed?                                                                   31
 //     Uint8*2 positionZ? (unit is feet)                                                      32
 //     Uint8 ordnanceChannel1ID?                                                              33
