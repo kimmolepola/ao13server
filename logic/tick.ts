@@ -347,7 +347,7 @@ const handleSharedObjects = (tickNumber: number, isRollback: boolean) => {
         );
         resetInputs(tickNumPastRollback, i);
       }
-      if (c.health <= 0) {
+      if (!isRollback && c.health <= 0) {
         gameEventHandler({
           type: types.EventType.HealthZero,
           data: {

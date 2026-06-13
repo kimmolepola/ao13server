@@ -4,6 +4,7 @@ import { handleSendQueue } from "../netcode/queue";
 import { resetRecentStates } from "../netcode/state";
 
 import { handleSendBaseState } from "../netcode/baseState";
+import { sendReliableStringSingleClient } from "./channels";
 import * as api from "../api";
 import * as parameters from "../parameters";
 import * as utils from "../utils";
@@ -120,6 +121,7 @@ const handleRemoveId = (data: {
   id: string;
   currentState: types.TickStateObject[];
 }) => {
+  sendReliableStringSingleClient(data.id, { type: types.ServerStringDataType.YouDied });
   const obj = data.currentState.find((x) => x.id === data.id);
   if (obj) {
     obj.exists = false;

@@ -235,6 +235,7 @@ export enum ServerStringDataType {
   Queue = "Queue",
   InactivityWarning = "InactivityWarning",
   ConnectionQualityKick = "ConnectionQualityKick",
+  YouDied = "YouDied",
 }
 
 export type ChatMessageFromClient = {
@@ -311,7 +312,11 @@ export type ConnectionQualityKick = {
   type: ServerStringDataType.ConnectionQualityKick;
 };
 
-export type ServerStringData = ChatMessageFromServer | BaseState | InactivityWarning | ConnectionQualityKick;
+export type YouDied = {
+  type: ServerStringDataType.YouDied;
+};
+
+export type ServerStringData = ChatMessageFromServer | BaseState | InactivityWarning | ConnectionQualityKick | YouDied;
 
 type Client = {
   id: string;
