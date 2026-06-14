@@ -2,7 +2,10 @@ import * as globals from "../globals";
 import * as types from "../types";
 import * as parameters from "../parameters";
 import { encodeAxisValue, encodeRotationZ } from "../utils";
-import { sendUnreliableBinary, sendReliableStringSingleClient } from "../service/channels";
+import {
+  sendUnreliableBinary,
+  sendReliableStringSingleClient,
+} from "../service/channels";
 
 const sequenceNumberBytes = 1;
 let buffer = new ArrayBuffer(sequenceNumberBytes);
@@ -59,7 +62,7 @@ const syncBufferSize = () => {
   }
 };
 
-const getUint8Bytes = (num: number) => {
+const uint32ToBytesLE = (num: number) => {
   const uint32 = num >>> 0; // Coerce to unsigned 32-bit
 
   return [
@@ -134,8 +137,12 @@ const evaluateMissedWindows = () => {
       const missed = (acknowledgements.missedWindows[clientId] ?? 0) + 1;
       acknowledgements.missedWindows[clientId] = missed;
       if (missed >= parameters.ackMaxMissedWindows) {
-        console.warn(`Client ${clientId} missed ${missed} consecutive ACK windows, disconnecting`);
-        sendReliableStringSingleClient(clientId, { type: types.ServerStringDataType.ConnectionQualityKick });
+        console.warn(
+          `Client ${clientId} missed ${missed} consecutive ACK windows, disconnecting`
+        );
+        sendReliableStringSingleClient(clientId, {
+          type: types.ServerStringDataType.ConnectionQualityKick,
+        });
         globals.clients.map[clientId].peerConnection.close();
       }
     }
@@ -193,7 +200,6 @@ function encode7bitWithFlag(value7: number, flag: number) {
   return ((flag & 1) << 7) | (value7 & 0x7f);
 }
 
-
 const buildGameEventIdBytes = (
   p: number[],
   pp: number[],
@@ -210,7 +216,7 @@ const buildGameEventIdBytes = (
 };
 
 export const gatherStateData = (
-  index: number,
+  ordinalPosition: number,
   tickStateObject: types.TickStateObject,
   objectInputs: types.InputsWithBytes,
   sequenceNumber: number,
@@ -219,10 +225,11 @@ export const gatherStateData = (
   pppSeq: number,
   ticks: types.TickStateObject[][]
 ) => {
-  const curObj = ticks[sequenceNumber][index];
-  const pObj = ticks[pSeq][index];
-  const ppObj = ticks[ppSeq][index];
-  const pppObj = ticks[pppSeq][index];
+  const slotIndex = tickStateObject.idOverNetwork;
+  const curObj = ticks[sequenceNumber][slotIndex];
+  const pObj = ticks[pSeq][slotIndex];
+  const ppObj = ticks[ppSeq][slotIndex];
+  const pppObj = ticks[pppSeq][slotIndex];
 
   const curGameEventIds = curObj.gameEventIds;
   const pGameEventIds = pObj.gameEventIds;
@@ -261,10 +268,10 @@ export const gatherStateData = (
   const fuelByte = (o.fuel * parameters.fuelToNetworkRatio) & 0xff;
   encodeOrdnance(0, o.bullets, ordnanceChannel1);
   encodeOrdnance(1, 0, ordnanceChannel2); // TODO: content
-  const xBytes = getUint8Bytes(x);
-  const yBytes = getUint8Bytes(y);
+  const xBytes = uint32ToBytesLE(x);
+  const yBytes = uint32ToBytesLE(y);
 
-  let indexHasChanged = true;
+  let idOverNetworkHasChanged = true;
   let inputs1HasChanged = true;
   let inputs2HasChanged = true;
   let eventsHasChanged = true;
@@ -284,16 +291,16 @@ export const gatherStateData = (
   let verticalSpeedHasChanged = true;
 
   const stateToCompareTo = getStateToCompareTo(sequenceNumber);
-  const oState = stateToCompareTo.state[idOverNetwork];
+  const oState = stateToCompareTo.state[ordinalPosition];
   if (oState && stateToCompareTo.acknowledged) {
     // ---values 1---
     // 2
     inputs1 === oState.inputs1 && (inputs1HasChanged = false);
     // 3, 4
-    const oXBytes = getUint8Bytes(oState.x);
+    const oXBytes = uint32ToBytesLE(oState.x);
     xDifferenceSignificance = getDifferenceSignificance(xBytes, oXBytes);
     // 5, 6
-    const oYBytes = getUint8Bytes(oState.y);
+    const oYBytes = uint32ToBytesLE(oState.y);
     yDifferenceSignificance = getDifferenceSignificance(yBytes, oYBytes);
 
     // 7
@@ -305,7 +312,7 @@ export const gatherStateData = (
 
     // ---values 2---
     // 2
-    index === oState.index && (indexHasChanged = false);
+    idOverNetwork === oState.idOverNetwork && (idOverNetworkHasChanged = false);
     // 3
     sameIntegerPart(speed, oState.speed) && (speedHasChanged = false);
     // 4
@@ -362,7 +369,7 @@ export const gatherStateData = (
   // ---values 2---
   let providedValues9to16 = 0b00000000;
   providedValues17to24 && (providedValues9to16 |= 0b00000001);
-  indexHasChanged && (providedValues9to16 |= 0b00000010);
+  idOverNetworkHasChanged && (providedValues9to16 |= 0b00000010);
   speedHasChanged && (providedValues9to16 |= 0b00000100);
   eventsHasChanged && (providedValues9to16 |= 0b00001000);
   eventsIdsHasChanged && (providedValues9to16 |= 0b00010000);
@@ -397,28 +404,28 @@ export const gatherStateData = (
   const setUint8 = (value: number) => {
     try {
       view.setUint8(offset + localOffset, value);
-      localOffset++;
     } catch (e: any) {
       console.error("setUint8 error");
     }
+    localOffset++;
   };
 
   const setInt8 = (value: number) => {
     try {
       view.setInt8(offset + localOffset, value);
-      localOffset++;
     } catch (e: any) {
       console.error("setInt8 error");
     }
+    localOffset++;
   };
 
   const setUint16 = (value: number) => {
     try {
       view.setUint16(offset + localOffset, value);
-      localOffset += 2;
     } catch (e: any) {
       console.error("setUint16 error");
     }
+    localOffset += 2;
   };
 
   const insertChangedBytes = (
@@ -433,7 +440,7 @@ export const gatherStateData = (
   setUint8(providedValues1to8);
   providedValues9to16 && setUint8(providedValues9to16);
   providedValues17to24 && setUint8(providedValues17to24);
-  indexHasChanged && setUint8(idOverNetwork);
+  idOverNetworkHasChanged && setUint8(idOverNetwork);
 
   // ---values 1---
   inputs1HasChanged && setUint8(inputs1 || 0);
@@ -483,9 +490,8 @@ export const gatherStateData = (
   offset += localOffset;
 
   if (shouldAddToRecentStates(sequenceNumber)) {
-    const o = recentStates[sequenceNumber].state[idOverNetwork];
+    const o = recentStates[sequenceNumber].state[ordinalPosition];
     if (o) {
-      o.index = index;
       // ---values 1---
       o.inputs1 = inputs1;
       o.x = x;
@@ -512,9 +518,7 @@ export const gatherStateData = (
       o.ordnanceChannel2.byte1 = ordnanceChannel2.byte1;
       o.ordnanceChannel2.byte2 = ordnanceChannel2.byte2;
     } else {
-      recentStates[sequenceNumber].state[idOverNetwork] = {
-        index,
-
+      recentStates[sequenceNumber].state[ordinalPosition] = {
         // ---values 1---
         inputs1,
         x,

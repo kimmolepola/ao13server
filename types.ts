@@ -66,9 +66,8 @@ export type RecentStates = {
   [sequenceNumber: number]: {
     acknowledged: boolean;
     state: {
-      [idOverNetwork: number]:
+      [ordinalPosition: number]:
         | {
-            index: number;
             // info byte 1
             inputs1: number | undefined;
             x: number;

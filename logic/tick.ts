@@ -263,7 +263,7 @@ const handleShot = (
     c.shotDelay -= parameters.tickInterval;
   }
   if (c.shotDelay <= 0) {
-    if (inputs.inputs.space) {
+    if (inputs.inputs.space && c.bullets > 0) {
       // shoot
       c.shotDelay += parameters.shotDelay;
       c.gameEventIds.push(0);
@@ -311,6 +311,7 @@ const handleSharedObjects = (tickNumber: number, isRollback: boolean) => {
   const prevInputs = receivedInputs[pSeq];
   const prevPrevInputs = receivedInputs[ppSeq];
 
+  let ordinalIndex = 0;
   for (let i = 0; i < parameters.maxSharedObjects; i++) {
     const c = currentState[i];
     const p = previousState[i];
@@ -340,7 +341,8 @@ const handleSharedObjects = (tickNumber: number, isRollback: boolean) => {
         const idN = c.idOverNetwork;
         const input = receivedInputs[tickNumber][idN];
 
-        gatherStateData(i, c, input, tickNumber, pSeq, ppSeq, pppSeq, ticks);
+        gatherStateData(ordinalIndex, c, input, tickNumber, pSeq, ppSeq, pppSeq, ticks);
+        ordinalIndex++;
         const tickNumPastRollback = seq8Sub(
           tickNumber,
           parameters.maxRollback + 1
@@ -456,7 +458,7 @@ export const runTick = (tickNumber: number) => {
   currentTick = tickNumber;
   globals.tickRef.currentState = ticks[tickNumber];
   handleNewSequence(tickNumber);
-  checkInputTimeouts();
+  tickNumber % 20 === 0 && checkInputTimeouts();
   if (oldestInputTick !== null && seqLess(oldestInputTick, tickNumber)) {
     performRollback(tickNumber, oldestInputTick);
   }
