@@ -24,9 +24,8 @@ const loop = () => {
         nextTickTime = now + parameters.tickInterval;
       }
     }
-  }
-  if (clientsLength) {
-    setImmediate(loop);
+
+    setTimeout(loop, Math.max(0, nextTickTime - performance.now()));
   } else {
     setTimeout(() => loop(), idleLoop);
   }

@@ -78,5 +78,5 @@ export const fuelToNetworkRatio = 255 / maxFuelKg;
 export const maxBullets = 480;
 
 export const ackMaxMissedWindows = 3; // 3 × 32 ticks × 50ms = 4.8s
-export const inputTimeoutMs = 60000;
-export const inputTimeoutWarningMs = 50000;
+export const inputTimeoutMs = 3600000;
+export const inputTimeoutWarningMs = 3300000;
