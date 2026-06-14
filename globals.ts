@@ -1,7 +1,6 @@
 import * as types from "./types";
 
 export const staticObjects: types.StaticGameObject[] = [];
-export const localObjects: types.LocalGameObject[] = [];
 export const clients: types.Clients = {
   map: {},
   array: [],

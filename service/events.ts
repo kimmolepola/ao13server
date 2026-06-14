@@ -44,12 +44,6 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
       handleRemoveId(gameEvent.data);
       break;
     }
-    case types.EventType.RemoveLocalObjectIndexes: {
-      for (const index of gameEvent.data) {
-        globals.localObjects[index] && globals.localObjects.splice(index, 1);
-      }
-      break;
-    }
     case types.EventType.Shot: {
       const o = gameEvent.data.gameObject;
       const localObjects = gameEvent.data.tickLocalObjects;

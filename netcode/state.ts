@@ -62,7 +62,7 @@ const syncBufferSize = () => {
   }
 };
 
-const uint32ToBytesLE = (num: number) => {
+const uint32ToBytesBE = (num: number) => {
   const uint32 = num >>> 0; // Coerce to unsigned 32-bit
 
   return [
@@ -268,8 +268,8 @@ export const gatherStateData = (
   const fuelByte = (o.fuel * parameters.fuelToNetworkRatio) & 0xff;
   encodeOrdnance(0, o.bullets, ordnanceChannel1);
   encodeOrdnance(1, 0, ordnanceChannel2); // TODO: content
-  const xBytes = uint32ToBytesLE(x);
-  const yBytes = uint32ToBytesLE(y);
+  const xBytes = uint32ToBytesBE(x);
+  const yBytes = uint32ToBytesBE(y);
 
   let idOverNetworkHasChanged = true;
   let inputs1HasChanged = true;
@@ -297,10 +297,10 @@ export const gatherStateData = (
     // 2
     inputs1 === oState.inputs1 && (inputs1HasChanged = false);
     // 3, 4
-    const oXBytes = uint32ToBytesLE(oState.x);
+    const oXBytes = uint32ToBytesBE(oState.x);
     xDifferenceSignificance = getDifferenceSignificance(xBytes, oXBytes);
     // 5, 6
-    const oYBytes = uint32ToBytesLE(oState.y);
+    const oYBytes = uint32ToBytesBE(oState.y);
     yDifferenceSignificance = getDifferenceSignificance(yBytes, oYBytes);
 
     // 7

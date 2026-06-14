@@ -24,10 +24,6 @@ const ticks: types.TickStateObject[][] = [];
 // inner array index is idOverNetwork
 const receivedInputs: types.InputsWithBytes[][] = [];
 
-// outer array index is idOverNetwork
-// inner array is tickNumbers of received input
-// const receivedInputTicknumbers: number[][] = [];
-
 // outer array index is tickNumber
 // inner array order is arbitrary
 const localObjects: types.TickLocalObject[][] = [];
@@ -98,24 +94,9 @@ const initializeReceivedInputs = () => {
   }
 };
 
-// const initializeReceivedInputTicknumbers = () => {
-//   receivedInputTicknumbers.length = 0;
-//   for (let i = 0; i < parameters.maxRemoteObjects; i++) {
-//     receivedInputTicknumbers[i] = [];
-//   }
-// };
-
-// const resetReceivedInputTicknumbers = () => {
-//   receivedInputTicknumbers.length = 0;
-//   for (let i = 0; i < parameters.maxRemoteObjects; i++) {
-//     receivedInputTicknumbers[i].length = 0;
-//   }
-// };
-
 initializeTicks();
 initializeReceivedInputs();
 initializeLocalObjects();
-// initializeReceivedInputTicknumbers();
 
 const isWithinMaxRollback = (seq: number, x: number) => {
   // Accept if seq is within maxRollback ticks of x in 8-bit space in either direction.
@@ -125,7 +106,7 @@ const isWithinMaxRollback = (seq: number, x: number) => {
   return ahead <= parameters.maxRollback || ahead >= 256 - parameters.maxRollback;
 };
 
-const seqLess = (a: number, b: number) => {
+const seqLessOrEqual = (a: number, b: number) => {
   // Returns true if a should come before b
   return ((b - a) & 0xff) <= 127;
 };
@@ -156,10 +137,9 @@ export const receiveInputData = (remoteId: string, data: types.InputsData) => {
     r.byte1 = data.byte1;
     r.byte2 = data.byte2;
 
-    if (oldestInputTick === null || seqLess(t, oldestInputTick)) {
+    if (oldestInputTick === null || seqLessOrEqual(t, oldestInputTick)) {
       oldestInputTick = t;
     }
-    // receivedInputTicknumbers[sharedObject.idOverNetwork]?.push(t);
   }
 };
 
@@ -366,12 +346,9 @@ const handleLocalObjects = (tickNumber: number) => {
   const currentLocalObjects = localObjects[tickNumber];
   currentLocalObjects.length = 0;
   const previousLocalObjects = localObjects[getPrevSeq(tickNumber)];
-  const indexesToRemove = [];
   for (let i = 0; i < previousLocalObjects.length; i++) {
     const previousObject = previousLocalObjects[i];
-    if (previousObject.timeToLive <= 0) {
-      indexesToRemove.push(i);
-    } else {
+    if (previousObject.timeToLive > 0) {
       const o = { ...previousObject };
       o.prevX = previousObject.x;
       o.prevY = previousObject.y;
@@ -459,12 +436,11 @@ export const runTick = (tickNumber: number) => {
   globals.tickRef.currentState = ticks[tickNumber];
   handleNewSequence(tickNumber);
   tickNumber % 20 === 0 && checkInputTimeouts();
-  if (oldestInputTick !== null && seqLess(oldestInputTick, tickNumber)) {
+  if (oldestInputTick !== null && seqLessOrEqual(oldestInputTick, tickNumber)) {
     performRollback(tickNumber, oldestInputTick);
   }
   simulate(tickNumber, false);
   oldestInputTick = null;
   handleReceivedEvents();
   sendState();
-  // resetReceivedInputTicknumbers();
 };

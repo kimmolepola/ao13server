@@ -114,14 +114,6 @@ export interface StaticGameObject extends GameObject {
   sinA: number;
 }
 
-export interface LocalGameObject extends GameObject {
-  type: GameObjectType.Bullet;
-  mesh: THREE.Mesh<THREE.BoxGeometry>;
-  timeToLive: number;
-  speed: number;
-  positionZ: number;
-}
-
 export interface SharedGameObject extends GameObject {
   idOverNetwork: number; // 0-255
   mesh: THREE.Mesh<THREE.BoxGeometry>;
@@ -161,7 +153,6 @@ export enum EventType {
   CollisionLocalObject,
   CollisionStaticObject,
   Shot,
-  RemoveLocalObjectIndexes,
   Queue,
   RemoveId,
   NewId,
@@ -195,7 +186,6 @@ export type GameEvent =
         currentTickNumber: number;
       };
     }
-  | { type: EventType.RemoveLocalObjectIndexes; data: number[] }
   | {
       type: EventType.NewId;
       data: {
