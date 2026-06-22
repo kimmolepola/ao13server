@@ -87,10 +87,11 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
     }
     case types.EventType.CollisionStaticObject: {
       const obj = gameEvent.data[0];
-      if (obj.speed === 0) {
-        obj.fuel < 8200 && (obj.fuel += 0.1);
-        obj.fuel > 8200 && (obj.fuel = 8200);
-        obj.bullets < 480 && (obj.bullets += 1);
+      if (obj.speed === 0 && Math.abs(obj.rotationSpeed) < 0.5) {
+        obj.fuel < parameters.maxFuelKg && (obj.fuel += 0.1);
+        obj.fuel > parameters.maxFuelKg && (obj.fuel = parameters.maxFuelKg);
+        obj.bullets < parameters.maxBullets && (obj.bullets += 1);
+        obj.health < parameters.maxHealth && (obj.health += 1);
       }
       break;
     }
@@ -160,7 +161,7 @@ const spawnObject = (
   o.y = 0;
   o.z = 1000;
   o.shotDelay = 0;
-  o.health = 100;
+  o.health = parameters.maxHealth;
   o.rotationZ = 0;
   return true;
 };

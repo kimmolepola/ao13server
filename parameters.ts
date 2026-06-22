@@ -73,6 +73,7 @@ export const bulletSpeedReductionFactor = 0.999;
 export const shotDelay = 100;
 export const bulletTimeToLive = 2000;
 
+export const maxHealth = 100;
 export const maxFuelKg = 8200;
 export const fuelToNetworkRatio = 255 / maxFuelKg;
 export const maxBullets = 480;
