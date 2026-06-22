@@ -3,9 +3,9 @@ import { HubConnection } from "@microsoft/signalr";
 import * as api from "./api";
 import {
   onReceiveString,
-  onReceiveControls,
+  onReceiveInputs,
   onReceiveAck,
-} from "./service/service";
+} from "./service/channels";
 import * as globals from "./globals";
 import * as utils from "./utils";
 
@@ -35,6 +35,8 @@ const createPeerConnection = (
     ackChannel: null,
     controlsChannel: null,
     stateChannel: null,
+    lastInputTime: Date.now(),
+    inputTimeoutWarningSent: false,
   };
   globals.clients.array.push(client);
   globals.clients.map[peerId] = client;
@@ -105,7 +107,7 @@ const createPeerConnection = (
           onReceiveString(msg, peerId, dc);
           break;
         case "controls-unreliable":
-          onReceiveControls(msg, peerId);
+          onReceiveInputs(msg, peerId);
           break;
         case "ack-reliable":
           onReceiveAck(msg, peerId);

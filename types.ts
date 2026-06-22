@@ -1,28 +1,100 @@
 import { PeerConnection, DataChannel } from "node-datachannel";
 import * as THREE from "three";
 
-export const recentStatesLength = 8; // sequence number max value 256 / 32 = 8
+export type SharedObjectInfo = {
+  id: string;
+  idOverNetwork: number;
+  username: string;
+};
 
-export const unreliableStateSingleObjectMaxBytes = 23;
+export enum ReceivedEventType {
+  NewId,
+  RemoveId,
+}
+
+export type ReceivedEvent =
+  | { type: ReceivedEventType.NewId; data: string }
+  | { type: ReceivedEventType.RemoveId; data: string };
+
+export type Count60FPSWithin20FPS = 0 | 1 | 2 | 3;
+export type ReceivedInputs = {
+  tickNumber: number;
+  idOverNetwork: number;
+  inputs: Inputs;
+};
+
+export type TickStateObject = GameObject & {
+  exists: boolean;
+  idOverNetwork: number;
+  isPlayer: boolean;
+  username: string;
+  health: number;
+  type: GameObjectType.Fighter;
+  x: number;
+  y: number;
+  z: number;
+  rotationZ: number;
+  score: number;
+  speed: number;
+  rotationSpeed: number;
+  verticalSpeed: number;
+  shotDelay: number;
+  fuel: number;
+  bullets: number;
+  gameEventIds: number[];
+};
+
+export type TickLocalObject = {
+  type: GameObjectType.Bullet;
+  x: number;
+  y: number;
+  z: number;
+  prevX: number;
+  prevY: number;
+  segDx: number;
+  segDy: number;
+  segLenSq: number;
+  rotationZ: number;
+  speed: number;
+  timeToLive: number;
+  originId: number;
+};
+
+export const recentStatesLength = 8; // sequence number max value 256 / 32 = 8
 
 export type RecentStates = {
   [sequenceNumber: number]: {
     acknowledged: boolean;
     state: {
-      [idOverNetwork: number]:
+      [ordinalPosition: number]:
         | {
-            index: number;
-            idOverNetwork: number;
-            controls: number;
-            health: number;
-            providedBytesForPositionAndRotation: number;
+            // info byte 1
+            inputs1: number | undefined;
             x: number;
             y: number;
-            z: number;
             rotationZ: number;
+            rotationSpeed: number;
+            // info byte 2
+            idOverNetwork: number;
+            speed: number;
+            eventsEncoded: number;
+            gameEventIdBytes: number[];
+            health: number;
             fuel: number;
-            ordnanceChannel1: { byte1: number; byte2: number };
-            ordnanceChannel2: { byte1: number; byte2: number };
+            // info byte 3
+            inputs2: number | undefined;
+            verticalSpeed: number;
+            z: number;
+            ordnanceChannel1: {
+              idWithFlag: number;
+              byte1: number;
+              byte2: number;
+            };
+            ordnanceChannel2: {
+              idWithFlag: number;
+              byte1: number;
+              byte2: number;
+            };
           }
         | undefined;
     };
@@ -40,14 +112,6 @@ export interface StaticGameObject extends GameObject {
   halfHeight: number;
   cosA: number;
   sinA: number;
-}
-
-export interface LocalGameObject extends GameObject {
-  type: GameObjectType.Bullet;
-  mesh: THREE.Mesh<THREE.BoxGeometry>;
-  timeToLive: number;
-  speed: number;
-  positionZ: number;
 }
 
 export interface SharedGameObject extends GameObject {
@@ -69,6 +133,7 @@ export interface SharedGameObject extends GameObject {
   controlsSpace: number;
   controlsD: number;
   controlsF: number;
+  controlsE: number;
   controlsOverChannelsUp: number;
   controlsOverChannelsDown: number;
   controlsOverChannelsLeft: number;
@@ -76,6 +141,7 @@ export interface SharedGameObject extends GameObject {
   controlsOverChannelsSpace: number;
   controlsOverChannelsD: number;
   controlsOverChannelsF: number;
+  controlsOverChannelsE: number;
   rotationSpeed: number;
   verticalSpeed: number;
   shotDelay: number;
@@ -87,31 +153,53 @@ export enum EventType {
   CollisionLocalObject,
   CollisionStaticObject,
   Shot,
-  RemoveLocalObjectIndexes,
+  Queue,
+  RemoveId,
+  NewId,
 }
 
 export type GameEvent =
   | {
       type: EventType.HealthZero;
-      data: SharedGameObject;
+      data: {
+        id: string;
+        currentState: TickStateObject[];
+      };
     }
   | {
       type: EventType.Collision;
-      data: [currentObject: SharedGameObject, otherObject: SharedGameObject];
+      data: [currentObject: TickStateObject, otherObject: TickStateObject];
     }
   | {
       type: EventType.CollisionLocalObject;
-      data: [currentObject: SharedGameObject, otherObject: LocalGameObject];
+      data: [currentObject: TickStateObject, otherObject: TickLocalObject];
     }
   | {
       type: EventType.CollisionStaticObject;
-      data: [currentObject: SharedGameObject, otherObject: StaticGameObject];
+      data: [currentObject: TickStateObject, otherObject: StaticGameObject];
     }
   | {
       type: EventType.Shot;
-      data: { gameObject: SharedGameObject; delta: number };
+      data: {
+        gameObject: TickStateObject;
+        tickLocalObjects: TickLocalObject[];
+        currentTickNumber: number;
+      };
     }
-  | { type: EventType.RemoveLocalObjectIndexes; data: number[] };
+  | {
+      type: EventType.NewId;
+      data: {
+        id: string;
+        currentState: TickStateObject[];
+      };
+    }
+  | {
+      type: EventType.RemoveId;
+      data: {
+        id: string;
+        currentState: TickStateObject[];
+      };
+    };
 
 export type GameEventHandler = (e: GameEvent) => void;
 
@@ -134,6 +222,9 @@ export enum ServerStringDataType {
   ChatMessage_Server = "ChatMessage_Server",
   BaseState = "BaseState",
   Queue = "Queue",
+  InactivityWarning = "InactivityWarning",
+  ConnectionQualityKick = "ConnectionQualityKick",
+  YouDied = "YouDied",
 }
 
 export type ChatMessageFromClient = {
@@ -148,14 +239,24 @@ export type ChatMessageFromServer = {
   userId: string;
 };
 
-export type Controls = {
-  up: number;
-  down: number;
-  left: number;
-  right: number;
-  space: number;
-  d: number;
-  f: number;
+export type Inputs = {
+  up: Count60FPSWithin20FPS | undefined;
+  down: Count60FPSWithin20FPS | undefined;
+  left: Count60FPSWithin20FPS | undefined;
+  right: Count60FPSWithin20FPS | undefined;
+  space: Count60FPSWithin20FPS | undefined;
+  keyD: Count60FPSWithin20FPS | undefined;
+  keyF: Count60FPSWithin20FPS | undefined;
+};
+
+export type InputsWithBytes = {
+  inputs: Inputs;
+  byte1: number | undefined;
+  byte2: number | undefined;
+};
+
+export type InputsData = InputsWithBytes & {
+  tickNumber: number;
 };
 
 export type BaseStateSharedObject = {
@@ -174,108 +275,6 @@ export type BaseStateStaticObject = {
   rotation: number;
 };
 
-// State shape (1 + n * 1-23 bytes)
-// [
-//   Uint8 sequence number (1 byte)
-//   ...game object data (1-23 bytes each): [                                           bytes cumulative max
-//     Uint8 providedValues1to8                                                         1
-//       1: values9to16IsProvided                                                       |
-//       2: controls                                                                    |
-//       3: fuel                                                                        |
-//       4: providedBytesForPositionAndRotation                                         |
-//       5: positionX                                                                   |
-//       6: positionY                                                                   |
-//       7: positionZ                                                                   |
-//       8: rotationZ                                                                   |
-//     Uint8 providedValues9to16                                                        2
-//       1: idOverNetwork                                                               |
-//       2: health                                                                      |
-//       3: ordnanceChannel1                                                            |
-//       4: ordnanceChannel2                                                            |
-//       5:                                                                             |
-//       6:                                                                             |
-//       7:                                                                             |
-//     Uint8 idOverNetwork?                                                             3
-//     Uint8 controls? (1:up 2:down 3:left 4:right 5:space 6:keyD 7:keyF)               4
-//     Uint8 health?                                                                    5
-//     Uint8 fuel?                                                                      6
-//     Uint8 providedBytesForPositionAndRotation? (6 bits in use)                       7
-//       1&2 positionX:                                                                 |
-//         [00]: 1 byte                                                                 |
-//         [01]: 2 bytes                                                                |
-//         [10]: 3 bytes                                                                |
-//         [11]: 4 bytes                                                                |
-//       3&4 positionY:                                                                 |
-//         [00]: 1 byte                                                                 |
-//         [01]: 2 bytes                                                                |
-//         [10]: 3 bytes                                                                |
-//         [11]: 4 bytes                                                                |
-//       5 positionZ:                                                                   |
-//         [0]: 1 byte                                                                  |
-//         [1]: 2 bytes                                                                 |
-//       6 rotationZ:                                                                   |
-//         [0]: 1 byte                                                                  |
-//         [1]: 2 bytes                                                                 |
-//     Uint8*1-4 positionX? (unit is cm * positonToNetworkFactor (0.01) = meter)        11
-//     Uint8*1-4 positionY? (unit is cm * positonToNetworkFactor (0.01) = meter)        15
-//     Uint8*1-2 positionZ? (unit is feet)                                              17
-//     Uint8*1-2 rotationZ?                                                             19
-//     Uint8 ordnanceChannel1(1/2)?                                                     20
-//       1: id part 1                                                                   |
-//       2: id part 2                                                                   |
-//       3: id part 3                                                                   |
-//       4: byte count (value 0 = 1, value 1 = 2)                                       |
-//       5: value part 1                                                                |
-//       6: value part 2                                                                |
-//       7: value part 3                                                                |
-//       8: value part 4 (4 bit max value 15)                                           |
-//     Uint8 ordnanceChannel1(2/2)?                                                     21
-//       1: value part 5                                                                |
-//       2: value part 6                                                                |
-//       3: value part 7                                                                |
-//       4: value part 8                                                                |
-//       5: value part 9                                                                |
-//       6: value part 10                                                               |
-//       7: value part 11                                                               |
-//       8: value part 12 (12 bit max value 4095)                                       |
-//     Uint8 ordnanceChannel2(1/2)?                                                     22
-//       1: id part 1                                                                   |
-//       2: id part 2                                                                   |
-//       3: id part 3                                                                   |
-//       4: byte count (value 0 = 1, value 1 = 2)                                       |
-//       5: value part 1                                                                |
-//       6: value part 2                                                                |
-//       7: value part 3                                                                |
-//       8: value part 4 (4 bit max value 15)                                           |
-//     Uint8 ordnanceChannel2(2/2)?                                                     23
-//       1: value part 5                                                                |
-//       2: value part 6                                                                |
-//       3: value part 7                                                                |
-//       4: value part 8                                                                |
-//       5: value part 9                                                                |
-//       6: value part 10                                                               |
-//       7: value part 11                                                               |
-//       8: value part 12 (12 bit max value 4095)                                       |
-//   ]
-// ]
-
-// Controls shape (1-5 bytes)
-// [
-//     Uint8 providedControls1to7 (1:up 2:down 3:left 4:right 5:space 6:keyD 7:keyF)
-//     Uint8
-//       1-4 providedControl1?
-//       5-8 providedControl2?
-//     Uint8
-//       1-4 providedControl3?
-//       5-8 providedControl4?
-//     Uint8
-//       1-4 providedControl5?
-//       5-8 providedControl6?
-//     Uint8
-//       1-4 providedControl7?
-// ]
-
-export type ReliableStateBinary = Uint8Array;
 export type UnreliableStateBinary = Uint8Array;
 
 export type BaseState = {
@@ -293,7 +292,20 @@ export type Queue = {
 
 export type ClientStringData = ChatMessageFromClient;
 
-export type ServerStringData = ChatMessageFromServer | BaseState;
+export type InactivityWarning = {
+  type: ServerStringDataType.InactivityWarning;
+  secondsUntilDisconnect: number;
+};
+
+export type ConnectionQualityKick = {
+  type: ServerStringDataType.ConnectionQualityKick;
+};
+
+export type YouDied = {
+  type: ServerStringDataType.YouDied;
+};
+
+export type ServerStringData = ChatMessageFromServer | BaseState | InactivityWarning | ConnectionQualityKick | YouDied;
 
 type Client = {
   id: string;
@@ -302,6 +314,8 @@ type Client = {
   ackChannel: DataChannel | null;
   controlsChannel: DataChannel | null;
   stateChannel: DataChannel | null;
+  lastInputTime: number;
+  inputTimeoutWarningSent: boolean;
 };
 
 export type Clients = {
@@ -309,44 +323,112 @@ export type Clients = {
   array: Client[];
 };
 
-// export const unreliableStateSingleObjectMaxBytes = 17;
+export const unreliableStateSingleObjectMaxBytes = 38;
 
-// OLD State shape (1 + n * 1-17 bytes)
+// State shape (1 + n * 1-38 bytes)
 // [
 //   Uint8 sequence number (1 byte)
-//   ...game object data (1-17 bytes each): [                                           bytes cumulative max
-//     Uint8 providedValues1to8                                                         1
-//       1: idOverNetwork                                                               |
-//       2: controls                                                                    |
-//       3: health                                                                      |
-//       4: positionX                                                                   |
-//       5: positionY                                                                   |
-//       6: positionZ                                                                   |
-//       7: angleZ                                                                      |
-//       8: providedBytesForPositionAndAngle                                            |
-//     Uint8 idOverNetwork? #1                                                          2
-//     Uint8 controls? #2 (1:up 2:down 3:left 4:right 5:space 6:keyD 7:keyF)            3
-//     Uint8 health? #3                                                                 4
-//     Uint8 providedBytesForPositionAndAngle? #4 (6 bits in use)                       5
-//       1&2 positionX:                                                                 |
-//         [00]: 1 byte                                                                 |
-//         [01]: 2 bytes                                                                |
-//         [10]: 3 bytes                                                                |
-//         [11]: 4 bytes                                                                |
-//       3&4 positionY:                                                                 |
-//         [00]: 1 byte                                                                 |
-//         [01]: 2 bytes                                                                |
-//         [10]: 3 bytes                                                                |
-//         [11]: 4 bytes                                                                |
-//       5 positionZ:                                                                   |
-//         [0]: 1 byte                                                                  |
-//         [1]: 2 bytes                                                                 |
-//       6 angleZ:                                                                      |
-//         [0]: 1 byte                                                                  |
-//         [1]: 2 bytes                                                                 |
-//     Uint8*1-4 positionX? #3 (unit is cm * positonToNetworkFactor (0.01) = meter)     9
-//     Uint8*1-4 positionY? #4 (unit is cm * positonToNetworkFactor (0.01) = meter)     13
-//     Uint8*1-2 positionZ? #5 (unit is feet)                                           15
-//     Uint8*1-2 angleZ? #6                                                             17
+//   ...game object data (1-38 bytes each): [                                                 bytes cumulative max
+//     Uint8 providedValues1to8                                                               1
+//       1: providedValues9to16 (true if the byte is non-zero, not compared to recent state)  |
+//       2: inputs1                                                                           |
+//       3: providedBytesPositionX                                                            |
+//       4: providedBytesPositionX                                                            |
+//          [00]: 0 bytes                                                                     |
+//          [01]: 1 byte                                                                      |
+//          [10]: 2 bytes                                                                     |
+//          [11]: 4 bytes                                                                     |
+//       5: providedBytesPositionY                                                            |
+//       6: providedBytesPositionY                                                            |
+//          [00]: 0 bytes                                                                     |
+//          [01]: 1 byte                                                                      |
+//          [10]: 2 bytes                                                                     |
+//          [11]: 4 bytes                                                                     |
+//       7: rotationZ                                                                         |
+//       8: rotationSpeed                                                                     |
+//     Uint8 providedValues9to16?                                                             2
+//       1: providedValues17to24 (true if the byte is non-zero, not compared to recent state) |
+//       2: idOverNetwork                                                                     |
+//       3: speed                                                                             |
+//       4: eventsIds                                                                         |
+//       5: events                                                                            |
+//       6: health                                                                            |
+//       7: fuel                                                                              |
+//       8:                                                                                   |
+//     Uint8 providedValues17to24?                                                            3
+//       1: inputs2                                                                           |
+//       2: verticalSpeed                                                                     |
+//       3: positionZ                                                                         |
+//       4: ordnanceChannel1                                                                  |
+//       5: ordnanceChannel2                                                                  |
+//       6:                                                                                   |
+//       7:                                                                                   |
+//       8:                                                                                   |
+//     Uint8 idOverNetwork?                                                                   4
+//     Uint8 inputs1? (1&2:up 3&4:down 5&6:left 7&8:right)                                    5
+//     Uint8*1-4 positionX? (unit is cm * positonToNetworkFactor (0.01) = meter)              9
+//     Uint8*1-4 positionY? (unit is cm * positonToNetworkFactor (0.01) = meter)              13
+//     Uint8*2 rotationZ?                                                                     15
+//     Uint8 rotationSpeed?                                                                   16
+//     Uint8*2 speed?                                                                         18
+//     Uint8 events?                                                                          19
+//       1: cur had one or more game events                                                   |
+//       2: p had one or more game events                                                     |
+//       3: pp had one or more game events                                                    |
+//       4: ppp had one or more game events                                                   |
+//       5-8: unused                                                                          |
+//     Uint8* gameEventIds? (linked list per tick, cur then p then pp then ppp)              20+
+//       1-7: event id (0-127)                                                                |
+//       8: another event follows for this tick (1) or end of tick's events (0)              |
+//     Uint8 health?                                                                          20+n
+//     Uint8 fuel?                                                                            29
+//     Uint8 inputs2? (1&2:space 3&4:keyD 5&6:keyF 7&8:unused)                               30
+//     Uint8 verticalSpeed?                                                                   31
+//     Uint8*2 positionZ? (unit is feet)                                                      32
+//     Uint8 ordnanceChannel1ID?                                                              33
+//       1: id part 1                                                                         |
+//       2: id part 2                                                                         |
+//       3: id part 3                                                                         |
+//       4: id part 4                                                                         |
+//       5: id part 5                                                                         |
+//       6: id part 6                                                                         |
+//       7: id part 7 (7 bit max value 127)                                                   |
+//       8: byte 2 provided                                                                   |
+//     Uint8 ordnanceChannel1ValueByte1?                                                      34
+//     Uint8 ordnanceChannel1ValueByte2?                                                      35
+//     Uint8 ordnanceChannel2ID?                                                              36
+//       1: id part 1                                                                         |
+//       2: id part 2                                                                         |
+//       3: id part 3                                                                         |
+//       4: id part 4                                                                         |
+//       5: id part 5                                                                         |
+//       6: id part 6                                                                         |
+//       7: id part 7 (7 bit max value 127)                                                   |
+//       8: byte 2 provided                                                                   |
+//     Uint8 ordnanceChannel2ValueByte1?                                                      37
+//     Uint8 ordnanceChannel2ValueByte2?                                                      38
 //   ]
+// ]
+
+// Controls shape (2-3 bytes) big endian
+// [
+//     Uint8 tickNumber
+//     Uint8
+//       1: up
+//       2: up
+//       3: down
+//       4: down
+//       5: left
+//       6: left
+//       7: right
+//       8: right
+//     Uint8
+//       1: space
+//       2: space
+//       3: keyD
+//       4: keyD
+//       5: keyF
+//       6: keyF
+//       7: keyE
+//       8: keyE
 // ]

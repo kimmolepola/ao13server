@@ -1,66 +1,88 @@
-import * as crypto from "crypto";
-import * as THREE from "three";
 import * as types from "../types";
 import * as globals from "../globals";
+import { handleSendQueue } from "../netcode/queue";
+import { resetRecentStates } from "../netcode/state";
+
+import { handleSendBaseState } from "../netcode/baseState";
+import { sendReliableStringSingleClient } from "./channels";
+import * as api from "../api";
 import * as parameters from "../parameters";
-import { handleRemoveId } from "./objects";
+import * as utils from "../utils";
+
+const object3d = utils.object3d;
+const axis = utils.AXIS_Z;
 
 export const gameEventHandler = (gameEvent: types.GameEvent) => {
   switch (gameEvent.type) {
-    case types.EventType.HealthZero: {
-      setTimeout(() => {
-        const obj = gameEvent.data;
-        handleRemoveId(obj.id);
-      }, 1000);
+    case types.EventType.RemoveId: {
+      handleRemoveId(gameEvent.data);
+
       break;
     }
-    case types.EventType.RemoveLocalObjectIndexes: {
-      for (const index of gameEvent.data) {
-        globals.localGameObjects[index] &&
-          globals.localGameObjects.splice(index, 1);
+    case types.EventType.NewId: {
+      const data = gameEvent.data;
+      const freeObject = data.currentState.find((x) => !x.exists);
+      if (freeObject) {
+        resetRecentStates();
+        if (!spawnObject(data.id, freeObject)) break;
+        handleSendBaseState(data.currentState);
+        const obj = {
+          id: freeObject.id,
+          idOverNetwork: freeObject.idOverNetwork,
+          username: freeObject.username,
+        };
+        globals.state.sharedObjectInfo.push(obj);
+        globals.state.sharedObjectInfoById[freeObject.id] = obj;
+        applyProfile(data.id, freeObject.idOverNetwork, obj);
+      } else {
+        globals.queue.push(data.id);
+        handleSendQueue(data.id);
       }
       break;
     }
+    case types.EventType.HealthZero: {
+      handleRemoveId(gameEvent.data);
+      break;
+    }
     case types.EventType.Shot: {
-      const delta = gameEvent.data.delta;
       const o = gameEvent.data.gameObject;
-      if (o.bullets >= 1) {
-        const id = crypto.randomBytes(12).toString("hex");
-        const speed = o.speed + parameters.bulletSpeed;
-        const type = types.GameObjectType.Bullet as types.GameObjectType.Bullet;
-        const geometry = new THREE.BoxGeometry(600, 600, 1);
-        const mesh = new THREE.Mesh(geometry);
-        mesh.geometry.computeBoundingBox();
-        const timeToLive = 1500;
-        mesh.position.copy(o.mesh.position);
-        // mesh?.quaternion.copy(gameEvent.data.mesh.quaternion);
-        mesh.rotation.copy(o.mesh.rotation);
-        mesh.translateY(5000);
-        globals.localGameObjects.push({
-          id,
-          type,
-          speed,
-          mesh,
-          positionZ: o.positionZ,
-          timeToLive,
-        });
-        o.bullets -= Math.min(
-          o.bullets,
-          Math.max(delta / parameters.shotDelay, 1)
-        );
+      const localObjects = gameEvent.data.tickLocalObjects;
+      if (o.bullets > 0) {
+        object3d.position.set(o.x, o.y, 0);
+        object3d.setRotationFromAxisAngle(axis, o.rotationZ);
+        object3d.translateY(1);
+        const obj = {
+          type: types.GameObjectType.Bullet as const,
+          x: object3d.position.x,
+          y: object3d.position.y,
+          prevX: object3d.position.x,
+          prevY: object3d.position.y,
+          segDx: 0,
+          segDy: 0,
+          segLenSq: 0,
+          z: o.z,
+          rotationZ: o.rotationZ,
+          speed: o.speed + parameters.bulletSpeed,
+          timeToLive: parameters.bulletTimeToLive,
+          originId: o.idOverNetwork,
+        };
+        o.bullets -= Math.min(o.bullets, 10);
+        localObjects.push(obj);
       }
       break;
     }
     case types.EventType.Collision: {
       const obj = gameEvent.data[0];
+      const obj2 = gameEvent.data[1];
       obj.health -= Math.min(obj.health, 1);
+      obj2.health -= Math.min(obj2.health, 1);
       break;
     }
     case types.EventType.CollisionLocalObject: {
       const obj = gameEvent.data[0];
       obj.health -= Math.min(obj.health, 1);
-      // const otherObj = gameEvent.data[1];
-      // otherObj.timeToLive = 0;
+      const otherObj = gameEvent.data[1];
+      otherObj.timeToLive = 0;
       break;
     }
     case types.EventType.CollisionStaticObject: {
@@ -76,4 +98,84 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
     default:
       break;
   }
+};
+
+const savePlayerData = async (currentState: types.TickStateObject[]) => {
+  const data =
+    currentState.reduce((acc: types.PlayerState[], cur) => {
+      if (cur.isPlayer) {
+        acc.push({ clientId: cur.id, score: cur.score });
+      }
+      return acc;
+    }, []) || [];
+  api.postSaveGameState(data);
+};
+
+const handleRemoveId = (data: {
+  id: string;
+  currentState: types.TickStateObject[];
+}) => {
+  sendReliableStringSingleClient(data.id, { type: types.ServerStringDataType.YouDied });
+  const obj = data.currentState.find((x) => x.id === data.id);
+  if (obj) {
+    obj.exists = false;
+    resetRecentStates();
+    savePlayerData(data.currentState);
+    handleSendBaseState(data.currentState);
+  }
+  const removeIndex = globals.state.sharedObjectInfo.findIndex(
+    (x) => x.id === data.id
+  );
+  removeIndex !== -1 && globals.state.sharedObjectInfo.splice(removeIndex, 1);
+  delete globals.state.sharedObjectInfoById[data.id];
+};
+
+const idFailure = (id: string) => {
+  console.error("Failed to add new object, id length not 32:", id);
+};
+
+const spawnObject = (
+  id: string,
+  freeObject: types.TickStateObject
+): boolean => {
+  if (id.length !== 32) {
+    idFailure(id);
+    return false;
+  }
+  const o = freeObject;
+  o.exists = true;
+  o.id = id;
+  o.type = types.GameObjectType.Fighter as const;
+  o.score = 0;
+  o.isPlayer = true;
+  o.username = "";
+  o.speed = parameters.initialSpeed;
+  o.fuel = parameters.maxFuelKg;
+  o.bullets = parameters.maxBullets;
+  o.rotationSpeed = 0;
+  o.verticalSpeed = 0;
+  o.x = 0;
+  o.y = 0;
+  o.z = 1000;
+  o.shotDelay = 0;
+  o.health = 100;
+  o.rotationZ = 0;
+  return true;
+};
+
+const applyProfile = async (
+  id: string,
+  idOverNetwork: number,
+  sharedInfo: types.SharedObjectInfo
+) => {
+  const { data } = await api.getGameObject(id);
+  if (!data) return;
+  sharedInfo.username = data.username || "";
+  const liveObj = globals.tickRef.currentState[idOverNetwork];
+  if (liveObj?.exists && liveObj.id === id) {
+    liveObj.score = data.score || 0;
+    liveObj.isPlayer = data.isPlayer || false;
+    liveObj.username = data.username || "";
+  }
+  handleSendBaseState(globals.tickRef.currentState);
 };

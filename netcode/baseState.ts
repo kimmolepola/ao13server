@@ -2,9 +2,10 @@ import * as globals from "../globals";
 import * as types from "../types";
 import { sendReliableString } from "../service/channels";
 
-export const handleSendBaseState = () => {
-  const sharedObjects: types.BaseStateSharedObject[] =
-    globals.sharedGameObjects.map((x) => ({
+export const handleSendBaseState = (currentState: types.TickStateObject[]) => {
+  const sharedObjects: types.BaseStateSharedObject[] = currentState
+    .filter((x) => x.exists)
+    .map((x) => ({
       id: x.id,
       isPlayer: x.isPlayer,
       username: x.username,
@@ -13,7 +14,7 @@ export const handleSendBaseState = () => {
     }));
 
   const staticObjects: types.BaseStateStaticObject[] =
-    globals.staticGameObjects.map((x) => ({
+    globals.staticObjects.map((x) => ({
       id: x.id,
       type: x.type,
       x: x.mesh.position.x,

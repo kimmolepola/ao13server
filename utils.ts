@@ -1,4 +1,9 @@
+import THREE from "three";
+
 import * as parameters from "./parameters";
+
+export const object3d = new THREE.Object3D();
+export const AXIS_Z = new THREE.Vector3(0, 0, 1);
 
 export const pixelsToDistanceUnits = (
   pixels: number,
