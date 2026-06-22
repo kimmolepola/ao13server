@@ -15,7 +15,7 @@ const axis = utils.AXIS_Z;
 export const gameEventHandler = (gameEvent: types.GameEvent) => {
   switch (gameEvent.type) {
     case types.EventType.RemoveId: {
-      handleRemoveId(gameEvent.data);
+      handleRemoveId(gameEvent.data, false);
 
       break;
     }
@@ -41,7 +41,7 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
       break;
     }
     case types.EventType.HealthZero: {
-      handleRemoveId(gameEvent.data);
+      handleRemoveId(gameEvent.data, true);
       break;
     }
     case types.EventType.Shot: {
@@ -111,11 +111,13 @@ const savePlayerData = async (currentState: types.TickStateObject[]) => {
   api.postSaveGameState(data);
 };
 
-const handleRemoveId = (data: {
-  id: string;
-  currentState: types.TickStateObject[];
-}) => {
-  sendReliableStringSingleClient(data.id, { type: types.ServerStringDataType.YouDied });
+const handleRemoveId = (
+  data: { id: string; currentState: types.TickStateObject[] },
+  sendYouDied: boolean
+) => {
+  if (sendYouDied) {
+    sendReliableStringSingleClient(data.id, { type: types.ServerStringDataType.YouDied });
+  }
   const obj = data.currentState.find((x) => x.id === data.id);
   if (obj) {
     obj.exists = false;

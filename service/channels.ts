@@ -66,7 +66,7 @@ export const sendReliableStringSingleClient = (
   const stringData = JSON.stringify(data);
   try {
     const client = globals.clients.map[id];
-    if (client.stringChannel?.isOpen) {
+    if (client.stringChannel?.isOpen()) {
       client.stringChannel.sendMessage(stringData);
     }
   } catch (error) {
