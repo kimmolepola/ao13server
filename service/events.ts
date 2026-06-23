@@ -80,7 +80,7 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
     }
     case types.EventType.CollisionLocalObject: {
       const obj = gameEvent.data[0];
-      obj.health -= Math.min(obj.health, 1);
+      obj.health -= Math.min(obj.health, 10);
       const otherObj = gameEvent.data[1];
       otherObj.timeToLive = 0;
       break;
