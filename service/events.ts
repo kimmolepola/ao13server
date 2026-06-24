@@ -1,7 +1,7 @@
 import * as types from "../types";
 import * as globals from "../globals";
 import { handleSendQueue } from "../netcode/queue";
-import { resetRecentStates } from "../netcode/state";
+import { scheduleRecentStatesReset } from "../netcode/state";
 
 import { handleSendBaseState } from "../netcode/baseState";
 import { sendReliableStringSingleClient } from "./channels";
@@ -23,7 +23,7 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
       const data = gameEvent.data;
       const freeObject = data.currentState.find((x) => !x.exists);
       if (freeObject) {
-        resetRecentStates();
+        scheduleRecentStatesReset();
         if (!spawnObject(data.id, freeObject)) break;
         handleSendBaseState(data.currentState);
         const obj = {
@@ -41,7 +41,7 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
       break;
     }
     case types.EventType.HealthZero: {
-      handleRemoveId(gameEvent.data, true);
+      handleRemoveId(gameEvent.data, false);
       break;
     }
     case types.EventType.Shot: {
@@ -122,7 +122,7 @@ const handleRemoveId = (
   const obj = data.currentState.find((x) => x.id === data.id);
   if (obj) {
     obj.exists = false;
-    resetRecentStates();
+    scheduleRecentStatesReset();
     savePlayerData(data.currentState);
     handleSendBaseState(data.currentState);
   }
@@ -159,7 +159,7 @@ const spawnObject = (
   o.verticalSpeed = 0;
   o.x = 0;
   o.y = 0;
-  o.z = 1000;
+  o.z = 0;
   o.shotDelay = 0;
   o.health = parameters.maxHealth;
   o.rotationZ = 0;

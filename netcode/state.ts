@@ -156,6 +156,15 @@ export const resetRecentStates = () => {
   }
 };
 
+let pendingRecentStatesReset = false;
+export const scheduleRecentStatesReset = () => { pendingRecentStatesReset = true; };
+export const applyScheduledRecentStatesReset = () => {
+  if (pendingRecentStatesReset) {
+    pendingRecentStatesReset = false;
+    resetRecentStates();
+  }
+};
+
 export const receiveAck = (seqNum: number, clientId: string) => {
   if (acknowledgements.expectedSequenceNumber === seqNum) {
     acknowledgements.acknowledged[clientId] = true;

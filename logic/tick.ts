@@ -5,6 +5,7 @@ import {
   gatherStateData,
   sendState,
   handleNewSequence,
+  applyScheduledRecentStatesReset,
 } from "../netcode/state";
 import { gameEventHandler } from "../service/events";
 import { sendReliableStringSingleClient } from "../service/channels";
@@ -169,14 +170,13 @@ const handleMovement = (
 
   o.speed = prev.speed;
   const dt = p.tickInterval / 1000;
+  const hasFuel = prev.fuel > 0;
   const thrustFactor =
     p.thrustMinFactor +
     (1 - p.thrustMinFactor) * Math.min(prev.speed / p.thrustRampSpeed, 1);
-  o.speed +=
-    (up * p.thrustForce * thrustFactor -
-      p.dragCoefficient * prev.speed * prev.speed -
-      down * p.brakeForce) *
-    dt;
+  const thrust = hasFuel ? up * p.thrustForce * thrustFactor : 0;
+  const drag = hasFuel ? 0 : p.dragCoefficient * prev.speed * prev.speed;
+  o.speed += (thrust - drag - down * p.brakeForce) * dt;
 
   o.rotationSpeed = prev.rotationSpeed;
   const leftBrake = left > 0 && prev.rotationSpeed < 0 ? 4 : 1;
@@ -184,14 +184,23 @@ const handleMovement = (
   o.rotationSpeed += left * p.forceLeftOrRightToRotationFactor * leftBrake;
   o.rotationSpeed -= right * p.forceLeftOrRightToRotationFactor * rightBrake;
 
-  o.verticalSpeed = prev.verticalSpeed;
-  o.verticalSpeed += keyF * p.forceAscOrDescToVerticalSpeedFactor;
-  o.verticalSpeed -= keyD * p.forceAscOrDescToVerticalSpeedFactor;
+  // Vertical speed: piecewise by speed (knots)
+  const kts = o.speed / 1.852;
+  if (kts < p.glideSlopeMinSpeedKts) {
+    o.verticalSpeed = p.glideSlopeVerticalSpeed - (p.glideSlopeMinSpeedKts - kts) * p.lowSpeedDescentFactor;
+  } else if (kts < p.glideSlopeMaxSpeedKts) {
+    o.verticalSpeed = p.glideSlopeVerticalSpeed;
+  } else if (kts < p.neutralMaxSpeedKts) {
+    o.verticalSpeed = 0;
+  } else {
+    o.verticalSpeed = (kts - p.neutralMaxSpeedKts) * p.ascentFactor;
+  }
 
   //
   // 2. CLAMP VELOCITIES
   //
-  o.speed = Math.min(Math.max(o.speed, p.minSpeed), p.maxSpeed);
+  const effectiveMinSpeed = prev.z > 0 ? p.minAirborneSpeedKmh : p.minSpeed;
+  o.speed = Math.min(Math.max(o.speed, effectiveMinSpeed), p.maxSpeed);
   o.rotationSpeed = Math.min(
     Math.max(o.rotationSpeed, -p.maxRotationSpeedAbsolute),
     p.maxRotationSpeedAbsolute
@@ -210,12 +219,6 @@ const handleMovement = (
     if (Math.abs(o.rotationSpeed) < 0.00001) o.rotationSpeed = 0;
   }
 
-  if (!keyD && !keyF) {
-    const decay = p.verticalDecay ** (p.tickInterval / (1000 / 60));
-    o.verticalSpeed *= decay;
-    if (Math.abs(o.verticalSpeed) < 0.00001) o.verticalSpeed = 0;
-  }
-
   object3d.position.set(prev.x, prev.y, 0);
   object3d.setRotationFromAxisAngle(axis, prev.rotationZ);
   object3d.rotateZ(o.rotationSpeed * p.rotationFactor * p.tickInterval);
@@ -224,8 +227,9 @@ const handleMovement = (
   o.y = object3d.position.y;
   o.rotationZ = object3d.rotation.z;
 
-  o.z = prev.z;
-  o.z += o.verticalSpeed * p.verticalSpeedFactor * p.tickInterval;
+  o.z = prev.z + o.verticalSpeed * p.verticalSpeedFactor * p.tickInterval;
+  if (o.z > p.maxAltitude) o.z = p.maxAltitude;
+  if (o.z < 0) o.z = 0;
 };
 
 const handleShot = (
@@ -309,13 +313,16 @@ const handleSharedObjects = (tickNumber: number, isRollback: boolean) => {
       c.bullets = p.bullets;
       handleMovement(c, p, playerCurInputs, prevInputs[i], prevPrevInputs[i]);
       handleShot(tickNumber, c, p, playerCurInputs, gameEventHandler);
-      checkCollisions(
+      const onRunway = checkCollisions(
         i,
         c,
         currentState,
         localObjects[tickNumber],
         gameEventHandler
       );
+      if (c.z === 0 && c.speed > parameters.crashSpeedThresholdKmh && !onRunway) {
+        c.health -= Math.min(c.health, parameters.crashDamagePerTick);
+      }
       c.fuel = Math.max(0, p.fuel - c.speed * 0.0001);
       if (!isRollback) {
         const idN = c.idOverNetwork;
@@ -434,6 +441,7 @@ const checkInputTimeouts = () => {
 export const runTick = (tickNumber: number) => {
   currentTick = tickNumber;
   globals.tickRef.currentState = ticks[tickNumber];
+  applyScheduledRecentStatesReset();
   handleNewSequence(tickNumber);
   tickNumber % 20 === 0 && checkInputTimeouts();
   if (oldestInputTick !== null && seqLessOrEqual(oldestInputTick, tickNumber)) {

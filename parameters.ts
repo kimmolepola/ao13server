@@ -67,6 +67,16 @@ export const forceLeftOrRightToRotationFactor = 0.25;
 export const maxVerticalSpeedAbsolute = 127;
 export const verticalSpeedFactor = 0.001;
 export const forceAscOrDescToVerticalSpeedFactor = 0.01;
+export const minAirborneSpeedKmh = 75 * 1.852; // 138.9 km/h — enforced minimum when z > 0
+export const maxAltitude = 9144 / oneDistanceUnitInMeters; // 457.2 units — 30,000 feet
+export const glideSlopeMinSpeedKts = 140;     // below this: descent steeper than glide slope
+export const glideSlopeMaxSpeedKts = 150;     // 140-150 kts: ~3° glide slope descent
+export const neutralMaxSpeedKts = 180;        // 150-180 kts: altitude neutral
+export const glideSlopeVerticalSpeed = -0.19; // fixed descent rate matching ~3° glide slope
+export const lowSpeedDescentFactor = 0.04;    // extra descent per knot below 140 kts
+export const ascentFactor = 0.03;             // climb rate per knot above 180 kts
+export const crashSpeedThresholdKmh = 30 * 1.852; // 55.56 km/h — ground speed above which off-runway contact causes damage
+export const crashDamagePerTick = 2; // health lost per tick while crash condition is active
 
 export const bulletSpeed = 3500;
 export const bulletSpeedReductionFactor = 0.999;

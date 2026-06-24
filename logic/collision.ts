@@ -87,7 +87,7 @@ export const checkCollisions = (
   sharedObjects: types.TickStateObject[],
   localObjects: types.TickLocalObject[],
   gameEventHandler: types.GameEventHandler
-) => {
+): boolean => {
   const x = gameObject.x;
   const y = gameObject.y;
   const z = gameObject.z;
@@ -124,13 +124,18 @@ export const checkCollisions = (
     }
   }
 
+  let onRunway = false;
   for (let i = globals.staticObjects.length - 1; i > -1; i--) {
     const staticGameObject = globals.staticObjects[i];
     if (isCollidingPlane(x, y, staticGameObject)) {
+      if (staticGameObject.type === types.GameObjectType.Runway) {
+        onRunway = true;
+      }
       gameEventHandler({
         type: types.EventType.CollisionStaticObject,
         data: [gameObject, staticGameObject],
       });
     }
   }
+  return onRunway;
 };
