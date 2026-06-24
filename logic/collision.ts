@@ -5,15 +5,13 @@ import * as globals from "../globals";
 const isColliding = (
   x: number,
   y: number,
-  z: number,
   otherObject: types.TickStateObject,
   maxDistance: number
 ) => {
   const dx = x - otherObject.x;
   const dy = y - otherObject.y;
-  const dz = z - otherObject.z;
 
-  const distSq = dx * dx + dy * dy + dz * dz;
+  const distSq = dx * dx + dy * dy;
   const maxDistSq = maxDistance * maxDistance;
 
   return distSq < maxDistSq;
@@ -23,13 +21,10 @@ const isColliding = (
 const isCollidingSwept = (
   x: number,
   y: number,
-  z: number,
   bullet: types.TickLocalObject,
   maxDistance: number
 ) => {
-  const dz = z - bullet.z;
   const maxDistSq = maxDistance * maxDistance;
-  if (dz * dz >= maxDistSq) return false;
 
   const ax = bullet.prevX,
     ay = bullet.prevY;
@@ -52,7 +47,7 @@ const isCollidingSwept = (
     xyDistSq = px * px + py * py;
   }
 
-  return xyDistSq + dz * dz < maxDistSq;
+  return xyDistSq < maxDistSq;
 };
 
 const isCollidingPlane = (
@@ -95,10 +90,13 @@ export const checkCollisions = (
   for (let i = localObjects.length - 1; i > -1; i--) {
     const localGameObject = localObjects[i];
     if (
+      localGameObject.timeToLive > 0 &&
+      (z < parameters.collisionAltitudeCheckBelowZ || localGameObject.z < parameters.collisionAltitudeCheckBelowZ
+        ? Math.abs(z - localGameObject.z) < parameters.collisionMaxAltitudeDiffBullet
+        : true) &&
       isCollidingSwept(
         x,
         y,
-        z,
         localGameObject,
         parameters.collisionMaxDistanceLocalObject
       )
@@ -115,7 +113,10 @@ export const checkCollisions = (
     if (
       sharedGameObject !== gameObject &&
       sharedGameObject.exists &&
-      isColliding(x, y, z, sharedGameObject, parameters.collisionMaxDistance)
+      (z < parameters.collisionAltitudeCheckBelowZ || sharedGameObject.z < parameters.collisionAltitudeCheckBelowZ
+        ? Math.abs(z - sharedGameObject.z) < parameters.collisionMaxAltitudeDiff
+        : true) &&
+      isColliding(x, y, sharedGameObject, parameters.collisionMaxDistance)
     ) {
       gameEventHandler({
         type: types.EventType.Collision,

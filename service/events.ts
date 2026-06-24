@@ -124,7 +124,7 @@ const handleRemoveId = (
     obj.exists = false;
     scheduleRecentStatesReset();
     savePlayerData(data.currentState);
-    handleSendBaseState(data.currentState);
+    setImmediate(() => handleSendBaseState(data.currentState));
   }
   const removeIndex = globals.state.sharedObjectInfo.findIndex(
     (x) => x.id === data.id

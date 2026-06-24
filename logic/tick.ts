@@ -336,14 +336,22 @@ const handleSharedObjects = (tickNumber: number, isRollback: boolean) => {
         );
         resetInputs(tickNumPastRollback, i);
       }
-      if (!isRollback && c.health <= 0) {
-        gameEventHandler({
-          type: types.EventType.HealthZero,
-          data: {
-            id: c.id,
-            currentState,
-          },
-        });
+      if (c.health <= 0) {
+        const curLocalObjects = localObjects[tickNumber];
+        for (let j = curLocalObjects.length - 1; j >= 0; j--) {
+          if (curLocalObjects[j].originId === i) {
+            curLocalObjects[j].timeToLive = 0;
+          }
+        }
+        if (!isRollback) {
+          gameEventHandler({
+            type: types.EventType.HealthZero,
+            data: {
+              id: c.id,
+              currentState,
+            },
+          });
+        }
       }
     }
   }

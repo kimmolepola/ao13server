@@ -1,6 +1,9 @@
 export const maxRollback = 8;
 export const tickInterval = 50;
 export const collisionMaxDistance = 0.7;
+export const collisionMaxAltitudeDiff = 3;
+export const collisionMaxAltitudeDiffBullet = 45.7; // 3000 ft
+export const collisionAltitudeCheckBelowZ = 45.7; // 3000 ft
 export const collisionMaxDistanceLocalObject = 0.35;
 export const maxSharedObjects = 256;
 export const chatMessageTimeToLive = 60000;
