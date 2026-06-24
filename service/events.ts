@@ -41,7 +41,7 @@ export const gameEventHandler = (gameEvent: types.GameEvent) => {
       break;
     }
     case types.EventType.HealthZero: {
-      handleRemoveId(gameEvent.data, false);
+      handleHealthZero(gameEvent.data);
       break;
     }
     case types.EventType.Shot: {
@@ -112,10 +112,17 @@ const savePlayerData = async (currentState: types.TickStateObject[]) => {
   api.postSaveGameState(data);
 };
 
+const dyingTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
 const handleRemoveId = (
   data: { id: string; currentState: types.TickStateObject[] },
   sendYouDied: boolean
 ) => {
+  const timer = dyingTimers.get(data.id);
+  if (timer !== undefined) {
+    clearTimeout(timer);
+    dyingTimers.delete(data.id);
+  }
   if (sendYouDied) {
     sendReliableStringSingleClient(data.id, { type: types.ServerStringDataType.YouDied });
   }
@@ -131,6 +138,16 @@ const handleRemoveId = (
   );
   removeIndex !== -1 && globals.state.sharedObjectInfo.splice(removeIndex, 1);
   delete globals.state.sharedObjectInfoById[data.id];
+};
+
+const handleHealthZero = (data: { id: string; currentState: types.TickStateObject[] }) => {
+  if (dyingTimers.has(data.id)) return;
+  const id = data.id;
+  const timer = setTimeout(() => {
+    dyingTimers.delete(id);
+    handleRemoveId({ id, currentState: globals.tickRef.currentState }, true);
+  }, parameters.deathLingerMs);
+  dyingTimers.set(data.id, timer);
 };
 
 const idFailure = (id: string) => {

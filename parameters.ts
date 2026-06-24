@@ -94,3 +94,4 @@ export const maxBullets = 480;
 export const ackMaxMissedWindows = 3; // 3 × 32 ticks × 50ms = 4.8s
 export const inputTimeoutMs = 3600000;
 export const inputTimeoutWarningMs = 3300000;
+export const deathLingerMs = 3000;

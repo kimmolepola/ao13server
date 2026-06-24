@@ -113,6 +113,7 @@ export const checkCollisions = (
     if (
       sharedGameObject !== gameObject &&
       sharedGameObject.exists &&
+      sharedGameObject.health > 0 &&
       (z < parameters.collisionAltitudeCheckBelowZ || sharedGameObject.z < parameters.collisionAltitudeCheckBelowZ
         ? Math.abs(z - sharedGameObject.z) < parameters.collisionMaxAltitudeDiff
         : true) &&

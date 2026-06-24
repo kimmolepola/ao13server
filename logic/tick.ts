@@ -311,19 +311,31 @@ const handleSharedObjects = (tickNumber: number, isRollback: boolean) => {
       c.type = p.type;
       c.score = p.score;
       c.bullets = p.bullets;
-      handleMovement(c, p, playerCurInputs, prevInputs[i], prevPrevInputs[i]);
-      handleShot(tickNumber, c, p, playerCurInputs, gameEventHandler);
-      const onRunway = checkCollisions(
-        i,
-        c,
-        currentState,
-        localObjects[tickNumber],
-        gameEventHandler
-      );
-      if (c.z === 0 && c.speed > parameters.crashSpeedThresholdKmh && !onRunway) {
-        c.health -= Math.min(c.health, parameters.crashDamagePerTick);
+      if (p.health > 0) {
+        handleMovement(c, p, playerCurInputs, prevInputs[i], prevPrevInputs[i]);
+        handleShot(tickNumber, c, p, playerCurInputs, gameEventHandler);
+        const onRunway = checkCollisions(
+          i,
+          c,
+          currentState,
+          localObjects[tickNumber],
+          gameEventHandler
+        );
+        if (c.z === 0 && c.speed > parameters.crashSpeedThresholdKmh && !onRunway) {
+          c.health -= Math.min(c.health, parameters.crashDamagePerTick);
+        }
+        c.fuel = Math.max(0, p.fuel - c.speed * 0.0001);
+      } else {
+        c.x = p.x;
+        c.y = p.y;
+        c.z = p.z;
+        c.speed = p.speed;
+        c.rotationZ = p.rotationZ;
+        c.rotationSpeed = p.rotationSpeed;
+        c.verticalSpeed = p.verticalSpeed;
+        c.shotDelay = p.shotDelay;
+        c.fuel = p.fuel;
       }
-      c.fuel = Math.max(0, p.fuel - c.speed * 0.0001);
       if (!isRollback) {
         const idN = c.idOverNetwork;
         const input = receivedInputs[tickNumber][idN];
@@ -336,7 +348,7 @@ const handleSharedObjects = (tickNumber: number, isRollback: boolean) => {
         );
         resetInputs(tickNumPastRollback, i);
       }
-      if (c.health <= 0) {
+      if (p.health > 0 && c.health <= 0) {
         const curLocalObjects = localObjects[tickNumber];
         for (let j = curLocalObjects.length - 1; j >= 0; j--) {
           if (curLocalObjects[j].originId === i) {
