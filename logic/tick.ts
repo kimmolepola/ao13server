@@ -187,13 +187,13 @@ const handleMovement = (
   // Vertical speed: piecewise by speed (knots)
   const kts = o.speed / 1.852;
   if (kts < p.glideSlopeMinSpeedKts) {
-    o.verticalSpeed = p.glideSlopeVerticalSpeed - (p.glideSlopeMinSpeedKts - kts) * p.lowSpeedDescentFactor;
+    o.verticalSpeed = p.fastDescentVerticalSpeed;
   } else if (kts < p.glideSlopeMaxSpeedKts) {
     o.verticalSpeed = p.glideSlopeVerticalSpeed;
   } else if (kts < p.neutralMaxSpeedKts) {
     o.verticalSpeed = 0;
   } else {
-    o.verticalSpeed = (kts - p.neutralMaxSpeedKts) * p.ascentFactor;
+    o.verticalSpeed = p.ascentVerticalSpeed;
   }
 
   //
@@ -355,15 +355,22 @@ const handleSharedObjects = (tickNumber: number, isRollback: boolean) => {
             curLocalObjects[j].timeToLive = 0;
           }
         }
-        if (!isRollback) {
-          gameEventHandler({
-            type: types.EventType.HealthZero,
-            data: {
-              id: c.id,
-              currentState,
-            },
-          });
-        }
+      }
+    }
+  }
+
+  // Second pass: fire HealthZero for every player whose health reached 0 this tick.
+  // A single pass misses lower-index players killed by higher-index collision handlers,
+  // because their health is reduced after their own HealthZero check already ran.
+  if (!isRollback) {
+    for (let i = 0; i < parameters.maxSharedObjects; i++) {
+      const c = currentState[i];
+      const p = previousState[i];
+      if (c.exists && p.health > 0 && c.health <= 0) {
+        gameEventHandler({
+          type: types.EventType.HealthZero,
+          data: { id: c.id, currentState },
+        });
       }
     }
   }

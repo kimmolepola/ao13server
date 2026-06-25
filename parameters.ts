@@ -58,7 +58,7 @@ export const speedFactor =
 // thrust - drag² physics: v_max ≈ sqrt(3×thrustForce / dragCoefficient) ≈ 2414 km/h at full throttle (up=3)
 export const thrustForce = 79; // km/h per second per input count
 export const dragCoefficient = 4.06e-5; // (km/h/s) / (km/h)²
-export const brakeForce = 20; // km/h per second per input count
+export const brakeForce = 50; // km/h per second per input count
 // S-curve: thrust ramps from thrustMinFactor at v=0 to 1.0 at thrustRampSpeed
 export const thrustMinFactor = 0.1; // fraction of thrust available at standstill
 export const thrustRampSpeed = 800; // km/h at which thrust reaches full power
@@ -75,9 +75,9 @@ export const maxAltitude = 9144 / oneDistanceUnitInMeters; // 457.2 units — 30
 export const glideSlopeMinSpeedKts = 140;     // below this: descent steeper than glide slope
 export const glideSlopeMaxSpeedKts = 150;     // 140-150 kts: ~3° glide slope descent
 export const neutralMaxSpeedKts = 180;        // 150-180 kts: altitude neutral
-export const glideSlopeVerticalSpeed = -0.19; // fixed descent rate matching ~3° glide slope
-export const lowSpeedDescentFactor = 0.04;    // extra descent per knot below 140 kts
-export const ascentFactor = 0.03;             // climb rate per knot above 180 kts
+export const fastDescentVerticalSpeed = -1.5;  // descent rate below glideSlopeMinSpeedKts
+export const glideSlopeVerticalSpeed = -0.19; // descent rate in glide slope band (140-150 kts)
+export const ascentVerticalSpeed = 1.5;       // climb rate above neutralMaxSpeedKts
 export const crashSpeedThresholdKmh = 30 * 1.852; // 55.56 km/h — ground speed above which off-runway contact causes damage
 export const crashDamagePerTick = 2; // health lost per tick while crash condition is active
 
@@ -94,4 +94,4 @@ export const maxBullets = 480;
 export const ackMaxMissedWindows = 3; // 3 × 32 ticks × 50ms = 4.8s
 export const inputTimeoutMs = 3600000;
 export const inputTimeoutWarningMs = 3300000;
-export const deathLingerMs = 3000;
+export const deathLingerMs = 10000;
